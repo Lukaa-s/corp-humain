@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { clamp, lerp } from './build.js';
 
 const DEG = Math.PI / 180;
+const smoothstep01 = (t) => { t = clamp(t, 0, 1); return t * t * (3 - 2 * t); };
 
 /**
  * Pilotage de la sonde.
@@ -26,6 +27,7 @@ export class Rig {
     this.paused = false;
     this.path = null;
     this.bounds = null;
+    this.focus = null;                        // sujet que la sonde garde dans l'axe
     this.freeSpeed = 26;
     this.lookAhead = 0.012;
     this.blend = 1;                           // 1 = collé au rail
@@ -111,6 +113,7 @@ export class Rig {
   setStation(st, { keepView = false } = {}) {
     this.path = st.path || null;
     this.bounds = st.bounds || null;
+    this.focus = st.focus || null;
     this.speed = st.speed ?? 0.018;
     this.freeSpeed = st.freeSpeed ?? 26;
     this.lookAhead = st.lookAhead ?? 0.012;
@@ -207,8 +210,23 @@ export class Rig {
 
     const ahead = this.path.getPointAt(clamp(this.u + this.lookAhead, 0, 1), this._p2);
     const dir = ahead.sub(this._p).normalize();
-    const railYaw = Math.atan2(-dir.x, -dir.z);
-    const railPitch = Math.asin(clamp(dir.y, -1, 1));
+    let railYaw = Math.atan2(-dir.x, -dir.z);
+    let railPitch = Math.asin(clamp(dir.y, -1, 1));
+
+    // fenêtre de contemplation : la caméra se tourne vers un sujet précis
+    const f = this.focus;
+    if (f) {
+      const fade = f.fade ?? 0.14;
+      const w = Math.min(smoothstep01((this.u - f.from) / fade), smoothstep01((f.to - this.u) / fade));
+      if (w > 0.002) {
+        const d = this._p2.subVectors(f.point, this.pos).normalize();
+        let fy = Math.atan2(-d.x, -d.z);
+        while (fy - railYaw > Math.PI) fy -= Math.PI * 2;
+        while (fy - railYaw < -Math.PI) fy += Math.PI * 2;
+        railYaw = lerp(railYaw, fy, w);
+        railPitch = lerp(railPitch, Math.asin(clamp(d.y, -1, 1)), w);
+      }
+    }
 
     // l'écart de regard revient au centre quand on lâche la souris
     if (!this.drag && !this.locked) {

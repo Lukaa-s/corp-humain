@@ -35,7 +35,7 @@ export default function poumons(q = 1) {
   group.add(bronch);
 
   /* cils vibratiles */
-  const NC = Math.round(4200 * q);
+  const NC = Math.round(7000 * q);
   const cPos = new Float32Array(NC * 3), cDir = new Float32Array(NC * 3),
         cSc = new Float32Array(NC * 2), cSeed = new Float32Array(NC);
   for (let i = 0; i < NC; i++) {
@@ -48,15 +48,15 @@ export default function poumons(q = 1) {
     const nz = f.n.z * Math.cos(a) + f.b.z * Math.sin(a);
     cPos[i * 3] = c.x + nx * r; cPos[i * 3 + 1] = c.y + ny * r; cPos[i * 3 + 2] = c.z + nz * r;
     cDir[i * 3] = -nx; cDir[i * 3 + 1] = -ny; cDir[i * 3 + 2] = -nz;
-    cSc[i * 2] = 1.5 + rnd() * 1.4; cSc[i * 2 + 1] = 6 + rnd() * 6;
+    cSc[i * 2] = 1.1 + rnd() * 1.0; cSc[i * 2 + 1] = 4 + rnd() * 4.5;
     cSeed[i] = rnd();
   }
   const cilia = new THREE.Mesh(instanced(spindle(5, 3), NC, {
     aPos: { array: cPos, size: 3 }, aDir: { array: cDir, size: 3 },
     aScale: { array: cSc, size: 2 }, aSeed: { array: cSeed, size: 1 },
   }), stalkField({
-    root: 0x7a3a42, tip: 0xffd8d0, hot: 0xffeae4,
-    sway: 0.55, rate: 3.4, rim: 0.9, wet: 0.4, ambient: 0.34, falloff: 0.00035, tipGlow: 0.3,
+    root: 0x7a3a42, tip: 0xe8a8a4, hot: 0xffd0c8,
+    sway: 0.6, rate: 3.6, rim: 0.75, wet: 0.3, ambient: 0.36, falloff: 0.00012, tipGlow: 0.08,
   }));
   cilia.frustumCulled = false;
   group.add(cilia);
@@ -116,7 +116,7 @@ export default function poumons(q = 1) {
     deep: 0x4a0812, mid: 0xd03a48, hot: 0xff9a8c,
     key: 0.3, keyDir: new THREE.Vector3(0.2, 1, 0.3), keyColor: 0xffc0c8,
     noiseScale: 0.08, displace: 0.5, breathAmp: 0.1,
-    rim: 0.9, wet: 0.5, shiny: 30, falloff: 0.00006, ambient: 0.26, normalMix: 0.35,
+    rim: 0.9, wet: 0.5, shiny: 30, falloff: 0.000012, ambient: 0.3, normalMix: 0.35,
   }));
   capGeos.forEach(g => g.dispose());
   group.add(caps);

@@ -26,7 +26,7 @@ export default function estomac(q = 1) {
     noiseScale: 0.018, displace: 10, pulseAmp: 0.35,
     bumpScale: 0.14, bumpAmp: 0.3, normalMix: 0.4,
     key: 0.32, keyDir: new THREE.Vector3(0.15, 1, 0.2), keyColor: 0xffcf7a,
-    rim: 0.62, wet: 0.3, shiny: 15, falloff: 0.00003, ambient: 0.26, light: 1.5,
+    rim: 0.62, wet: 0.3, shiny: 15, falloff: 0.000008, ambient: 0.3, light: 1.5,
     vein: true, veinAmt: 0.45, veinScale: 0.045,
   });
   const wall = new THREE.Mesh(wallGeo, wallMat);
@@ -36,7 +36,7 @@ export default function estomac(q = 1) {
   const wave = new THREE.Mesh(new THREE.TorusGeometry(R * 0.86, 46, 14, 64), tissue({
     side: THREE.DoubleSide, deep: 0x33210a, mid: 0xc79a3e, hot: 0xffe49a,
     noiseScale: 0.02, displace: 12, pulseAmp: 0.2, bumpScale: 0.3, bumpAmp: 0.4,
-    normalMix: 0.55, rim: 0.7, wet: 0.55, shiny: 20, falloff: 0.00004, ambient: 0.2,
+    normalMix: 0.55, rim: 0.7, wet: 0.4, shiny: 18, falloff: 0.00001, ambient: 0.26,
   }));
   wave.rotation.x = Math.PI / 2;
   group.add(wave);

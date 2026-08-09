@@ -127,6 +127,7 @@ async function goto(i, first = false) {
   sound.setAmbience(st.ambience);
 
   rig.setStation(world);
+  if (PARAMS.has('u')) rig.u = clamp(num('u', 0), 0, 1);
   rig.shake = world.shake ?? 0.5;
   rig.onEnd = onTourEnd;
   rig.paused = !state.playing;

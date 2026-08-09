@@ -283,10 +283,10 @@ body[data-age="adulte"] .age-thumb { transform: translateX(calc(100% - 6px)); }
   position: absolute; left: calc(18px + var(--sal)); top: 50%; transform: translateY(-50%);
   display: flex; align-items: center; gap: 14px;
 }
-.bodymap { width: 62px; height: 122px; overflow: visible; opacity: .96; }
-.bm-shape { fill: rgba(255,255,255,.055); stroke: rgba(255,255,255,.20); stroke-width: 1; }
+.bodymap { width: 66px; height: 130px; overflow: visible; opacity: 1; filter: drop-shadow(0 2px 10px rgba(0,0,0,.8)); }
+.bm-shape { fill: rgba(255,255,255,.10); stroke: rgba(255,255,255,.34); stroke-width: 1.1; }
 .bm-dots circle { cursor: pointer; pointer-events: auto; transition: r .35s var(--ease-out), fill .35s, opacity .35s; }
-.bm-dot { fill: rgba(255,255,255,.30); r: 2.6; stroke: none; }
+.bm-dot { fill: rgba(255,255,255,.45); r: 2.8; stroke: none; }
 .bm-dot.seen { fill: color-mix(in srgb, var(--accent) 62%, white); }
 .bm-dot.now  { fill: var(--accent); r: 4.2; filter: drop-shadow(0 0 7px var(--accent)); }
 .bm-pulse { fill: none; stroke: var(--accent); stroke-width: .9; opacity: 0; transform-box: fill-box; transform-origin: center; }

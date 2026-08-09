@@ -24,7 +24,7 @@ export default function coeur() {
     noiseScale: 0.02, displace: 9, pulseAmp: 0.9,
     bumpScale: 0.28, bumpAmp: 0.5, normalMix: 0.42,
     key: 0.34, keyDir: new THREE.Vector3(0.25, 1, -0.35), keyColor: 0xff6a52,
-    rim: 0.6, wet: 0.45, shiny: 26, falloff: 0.000028, ambient: 0.2, light: 1.5, emissive: 0x1a0206,
+    rim: 0.6, wet: 0.45, shiny: 26, falloff: 0.000015, ambient: 0.24, light: 1.5, emissive: 0x1a0206,
     vein: true, veinAmt: 0.5, veinScale: 0.05,
   }));
   group.add(wall);
@@ -218,6 +218,7 @@ export default function coeur() {
   let openS = 0.15;
   return {
     group, path, spots, spotFar: 430,
+    focus: { point: new THREE.Vector3(0, 0, VALVE_Z + 30), from: 0.60, to: 0.90, fade: 0.12 },
     speed: 0.0088, freeSpeed: 90, lookAhead: 0.016, fov: 76, shake: 1.0,
     bounds: { type: 'sphere', center: new THREE.Vector3(0, 0, 0), radius: 265 },
     grade: { bloom: 0.7, tint: [1.08, 0.95, 0.95], vig: 0.62, exposure: 1.02 },

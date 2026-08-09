@@ -38,7 +38,7 @@ export default function rein(q = 1) {
     noiseScale: 0.05, displace: 1.6, pulseAmp: 0.5,
     bumpScale: 0.5, bumpAmp: 0.35, normalMix: 0.4,
     key: 0.34, keyDir: new THREE.Vector3(0.2, 1, 0.2), keyColor: 0x9fc0ff,
-    rim: 0.95, wet: 0.5, shiny: 30, falloff: 0.00006, ambient: 0.26, light: 1.4,
+    rim: 0.95, wet: 0.4, shiny: 26, falloff: 0.000007, ambient: 0.36, light: 1.85,
   }));
   loopGeos.forEach(g => g.dispose());
   group.add(glom);
@@ -63,7 +63,7 @@ export default function rein(q = 1) {
     aScale: { array: pSc, size: 2 }, aSeed: { array: pSeed, size: 1 },
   }), stalkField({
     root: 0x3a2050, tip: 0xa8c8ff, hot: 0xe0f0ff,
-    sway: 0.16, rate: 1.0, rim: 0.95, wet: 0.5, ambient: 0.24, falloff: 0.0001, tipGlow: 0.4,
+    sway: 0.16, rate: 1.0, rim: 0.9, wet: 0.4, ambient: 0.38, falloff: 0.00002, tipGlow: 0.3,
   }));
   podo.frustumCulled = false;
   group.add(podo);
@@ -90,7 +90,7 @@ export default function rein(q = 1) {
   const arts = new THREE.Mesh(mergeGeometries(artGeos), tissue({
     side: THREE.DoubleSide, deep: 0x2a0a1e, mid: 0xb03a50, hot: 0xffa0a8,
     noiseScale: 0.03, displace: 2.5, pulseAmp: 0.4, bumpScale: 0.4, bumpAmp: 0.3,
-    normalMix: 0.5, rim: 0.85, wet: 0.55, shiny: 28, falloff: 0.00005, ambient: 0.18,
+    normalMix: 0.4, rim: 0.85, wet: 0.45, shiny: 28, falloff: 0.00001, ambient: 0.3,
   }));
   artGeos.forEach(g => g.dispose());
   group.add(arts);
@@ -128,9 +128,9 @@ export default function rein(q = 1) {
   group.add(tubGlow);
 
   /* ── ultrafiltrat ── */
-  const filtrate = moteField(Math.round(2400 * q), 700, {
-    shape: 'sphere', colorA: 0xa8d8ff, colorB: 0xffffff,
-    size: 5, drift: 24, rate: 0.24, intensity: 0.6, twinkle: 0.9,
+  const filtrate = moteField(Math.round(1500 * q), 620, {
+    shape: 'sphere', colorA: 0x8fc4f0, colorB: 0xd8ecff,
+    size: 3.4, drift: 24, rate: 0.24, intensity: 0.34, twinkle: 0.9, maxPx: 20, near: 40,
   }, 82);
   group.add(filtrate);
 
@@ -161,6 +161,7 @@ export default function rein(q = 1) {
 
   return {
     group, path, spots, spotFar: 950,
+    focus: { point: new THREE.Vector3(0, 0, 0), from: 0.06, to: 0.42, fade: 0.1 },
     speed: 0.0072, freeSpeed: 110, lookAhead: 0.012, fov: 72, shake: 0.35,
     bounds: { type: 'sphere', center: new THREE.Vector3(0, -300, 60), radius: 1100 },
     grade: { bloom: 0.72, tint: [0.95, 0.99, 1.08], vig: 0.55, exposure: 1.06 },

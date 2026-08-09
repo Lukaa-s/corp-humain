@@ -53,7 +53,7 @@ export default function foie(q = 1) {
     side: THREE.FrontSide, deep: 0x360b06, mid: 0xb84c30, hot: 0xffbe80,
     noiseScale: 0.05, displace: 1.6, bumpScale: 0.5, bumpAmp: 0.3, normalMix: 0.22,
     key: 0.34, keyDir: new THREE.Vector3(0.2, 1, 0.15), keyColor: 0xff9a60,
-    rim: 0.7, wet: 0.5, shiny: 26, falloff: 0.00004, ambient: 0.18,
+    rim: 0.7, wet: 0.5, shiny: 26, falloff: 0.00001, ambient: 0.24,
   }));
   cellGeos.forEach(g => g.dispose());
   lobule.add(cells);
@@ -76,7 +76,7 @@ export default function foie(q = 1) {
   }
   const sinus = new THREE.Mesh(mergeGeometries(sinGeos), pulseStrand({
     base: 0x5c1218, spark: 0xffb46a, speed: 0.26, width: 0.1, density: 1.0,
-    rim: 0.85, intensity: 1.5, falloff: 0.00004,
+    rim: 0.85, intensity: 1.5, falloff: 0.00001,
   }));
   sinGeos.forEach(g => g.dispose());
   lobule.add(sinus);
@@ -106,7 +106,7 @@ export default function foie(q = 1) {
 
   const bile = new THREE.Mesh(mergeGeometries(bileGeos), pulseStrand({
     base: 0x4a4410, spark: 0xd8f060, speed: -0.18, width: 0.12, density: 0.8,
-    rim: 0.8, intensity: 1.2, falloff: 0.00004,
+    rim: 0.8, intensity: 1.2, falloff: 0.00001,
   }));
   bileGeos.forEach(g => g.dispose());
   lobule.add(bile);

@@ -12,40 +12,40 @@ export default function charpente(q = 1) {
   const rnd = rng(909);
 
   group.add(new THREE.Mesh(new THREE.SphereGeometry(3000, 30, 20),
-    voidDome({ top: 0x241c14, bottom: 0x080605, cloud: 0x4a3524, clouds: 0.4, scale: 0.5 })));
+    voidDome({ top: 0x2e2318, bottom: 0x0c0907, cloud: 0x5c4128, clouds: 0.45, scale: 0.5 })));
 
   /* ── réseau trabéculaire ── */
   const nodes = [];
-  const NN = Math.round(240 * q);
+  const NN = Math.round(460 * q);
   for (let i = 0; i < NN; i++) {
     nodes.push(new THREE.Vector3(
-      (rnd() - 0.5) * 1500 - 380,
-      (rnd() - 0.5) * 900,
-      (rnd() - 0.5) * 1500));
+      (rnd() - 0.5) * 1250 - 380,
+      (rnd() - 0.5) * 780,
+      (rnd() - 0.5) * 1250));
   }
   const segs = [];
   for (let i = 0; i < nodes.length; i++) {
     const d = nodes.map((n, j) => ({ j, d: n.distanceTo(nodes[i]) })).sort((a, b) => a.d - b.d);
-    for (let k = 1; k <= 3; k++) {
+    for (let k = 1; k <= 4; k++) {
       const j = d[k]?.j;
       if (j === undefined || j < i) continue;
-      if (d[k].d > 400) continue;
-      const r = 5 + rnd() * 9;
+      if (d[k].d > 260) continue;
+      const r = 9 + rnd() * 13;
       segs.push({ a: nodes[i], b: nodes[j], r0: r, r1: r * (0.7 + rnd() * 0.5) });
     }
   }
   const lattice = segmentsToMesh(segs, tissue({
     side: THREE.DoubleSide, deep: 0x3a3026, mid: 0xd8cbb2, hot: 0xfff4e0,
     noiseScale: 0.03, displace: 2.4, bumpScale: 0.45, bumpAmp: 0.4, normalMix: 0.5,
-    rim: 0.55, wet: 0.25, shiny: 18, falloff: 0.00002, ambient: 0.3, light: 1.25,
-    key: 0.6, keyDir: new THREE.Vector3(0.3, 0.9, 0.2), keyColor: 0xffe8d0,
+    rim: 0.55, wet: 0.22, shiny: 16, falloff: 0.0000025, ambient: 0.34, light: 1.3,
+    key: 0.78, keyDir: new THREE.Vector3(0.34, 0.86, 0.28), keyColor: 0xffeeda,
     vein: true, veinAmt: 0.35, veinScale: 0.06,
   }), 8);
   group.add(lattice);
 
   /* ── moelle rouge ── */
   const marrow = new THREE.Mesh(new THREE.SphereGeometry(430, 30, 22),
-    glow({ color: 0xff3a44, intensity: 0.10, core: 0.0, power: 2.6, side: THREE.BackSide, pulseAmp: 0.5 }));
+    glow({ color: 0xff3a44, intensity: 0.22, core: 0.02, power: 2.2, side: THREE.BackSide, pulseAmp: 0.5 }));
   marrow.position.set(-380, -40, 0);
   group.add(marrow);
 
@@ -78,7 +78,7 @@ export default function charpente(q = 1) {
   rGeo.boundingSphere = new THREE.Sphere(new THREE.Vector3(), 1e5);
   const cells = new THREE.Mesh(rGeo, driftCells({
     deep: 0x5c0810, mid: 0xd8303c, hot: 0xff9c86,
-    drift: 34, rate: 0.15, spinRate: 0.8, falloff: 0.00008, rim: 0.85, wet: 0.55, ambient: 0.22, clear: 34,
+    drift: 34, rate: 0.15, spinRate: 0.8, falloff: 0.00001, rim: 0.85, wet: 0.5, ambient: 0.3, clear: 40,
   }));
   cells.frustumCulled = false;
   group.add(cells);
@@ -99,7 +99,7 @@ export default function charpente(q = 1) {
   }
   const fibres = new THREE.Mesh(mergeGeometries(fibreGeos), pulseStrand({
     base: 0x7a1c22, spark: 0xffb0a0, speed: 0.0, width: 0.18, density: 46,
-    rim: 0.75, intensity: 0.5, falloff: 0.00002,
+    rim: 0.75, intensity: 0.62, falloff: 0.0000025,
   }));
   fibreGeos.forEach(g => g.dispose());
   muscle.add(fibres);
@@ -107,7 +107,7 @@ export default function charpente(q = 1) {
   const sheath = new THREE.Mesh(new THREE.CylinderGeometry(210, 210, 1500, 34, 1, true), tissue({
     side: THREE.DoubleSide, transparent: true, alpha: 0.34, depthWrite: false, bump: false,
     deep: 0x2a0c0c, mid: 0xa05048, hot: 0xffd0b8,
-    noiseScale: 0.02, displace: 6, rim: 1.0, wet: 0.4, shiny: 22, falloff: 0.00003, ambient: 0.2, normalMix: 0.3,
+    noiseScale: 0.02, displace: 6, rim: 1.0, wet: 0.35, shiny: 22, falloff: 0.000004, ambient: 0.3, normalMix: 0.3,
   }));
   sheath.rotation.z = Math.PI / 2;
   muscle.add(sheath);
@@ -118,7 +118,7 @@ export default function charpente(q = 1) {
     new THREE.Vector3(-60, 180, 120), new THREE.Vector3(-20, 60, 60), new THREE.Vector3(0, 4, 30),
   ]), 60, 9, 8, false), pulseStrand({
     base: 0x2c2c52, spark: 0xa8e8ff, speed: 0.55, width: 0.05, density: 1.2,
-    rim: 0.9, intensity: 2.0, falloff: 0.00003,
+    rim: 0.9, intensity: 2.4, falloff: 0.000004,
   }));
   muscle.add(nerve);
   const plaque = new THREE.Mesh(blob(30, 2, (n) => 6 * Math.sin(n.x * 7) * Math.sin(n.z * 7)),

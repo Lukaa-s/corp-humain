@@ -12,10 +12,10 @@ export default function cerveau(q = 1) {
   const rnd = rng(1010);
 
   group.add(new THREE.Mesh(new THREE.SphereGeometry(3200, 32, 22),
-    voidDome({ top: 0x141034, bottom: 0x03020a, cloud: 0x2e1c5e, clouds: 0.55, scale: 0.5 })));
+    voidDome({ top: 0x0e0a26, bottom: 0x030209, cloud: 0x241650, clouds: 0.4, scale: 0.5 })));
 
   /* ── neurones ── */
-  const NEURONS = Math.max(7, Math.round(13 * q));
+  const NEURONS = Math.max(8, Math.round(19 * q));
   const allSegs = [];
   const somas = [], tips = [];
   for (let i = 0; i < NEURONS; i++) {
@@ -25,8 +25,8 @@ export default function cerveau(q = 1) {
       -300 + (rnd() - 0.5) * 1900);
     const d = new THREE.Vector3(rnd() - 0.5, rnd() - 0.5, rnd() - 0.5).normalize();
     const segs = branchTree({
-      origin: o, dir: d, length: 150 + rnd() * 110, radius: 11 + rnd() * 5,
-      depth: 4, split: 2, lengthDecay: 0.74, radiusDecay: 0.66,
+      origin: o, dir: d, length: 165 + rnd() * 120, radius: 13 + rnd() * 6,
+      depth: 4, split: 2, lengthDecay: 0.76, radiusDecay: 0.68,
       spread: 0.72, seed: 100 + i * 7, jitter: 0.42,
     });
     allSegs.push(...segs);
@@ -34,15 +34,15 @@ export default function cerveau(q = 1) {
     for (const s of segs) if (s.level >= 3) tips.push(s.b);
   }
   const neurons = segmentsToMesh(allSegs, pulseStrand({
-    base: 0x2c2452, spark: 0xa8e0ff, speed: 0.34, width: 0.055, density: 1.0,
-    rim: 0.85, intensity: 2.2, falloff: 0.000012,
-  }), 7, { uvAlong: true, uvScale: 0.0022, heightSeg: 2 });
+    base: 0x4a3f8e, spark: 0xbdefff, speed: 0.30, width: 0.085, density: 3.2,
+    rim: 1.1, intensity: 3.4, falloff: 0.0000015,
+  }), 8, { uvAlong: true, uvScale: 0.0022, heightSeg: 2, open: true });
   group.add(neurons);
 
   /* ── somas ── */
   const somaGeos = [];
   for (const s of somas) {
-    const g = blob(30 + rnd() * 12, 2, (n) => 5 * Math.sin(n.x * 6) * Math.sin(n.y * 5) * Math.sin(n.z * 6));
+    const g = blob(46 + rnd() * 20, 2, (n) => 7 * Math.sin(n.x * 6) * Math.sin(n.y * 5) * Math.sin(n.z * 6));
     g.translate(s.x, s.y, s.z);
     somaGeos.push(g);
   }
@@ -54,7 +54,7 @@ export default function cerveau(q = 1) {
   group.add(somaMesh);
 
   const somaCore = new THREE.Mesh(somaMesh.geometry,
-    glow({ color: 0x7fc8ff, intensity: 0.22, core: 0.1, power: 2.4, pulseAmp: 0.4, flicker: 0.12 }));
+    glow({ color: 0x7fc8ff, intensity: 0.4, core: 0.16, power: 2.4, pulseAmp: 0.5, flicker: 0.12 }));
   group.add(somaCore);
 
   /* ── synapses : chaque terminaison scintille à son propre rythme ── */
@@ -91,7 +91,7 @@ export default function cerveau(q = 1) {
     new THREE.Vector3(1500, -400, -900),
   ]);
   const vessel = new THREE.Mesh(new THREE.TubeGeometry(vesselCurve, 160, 26, 12, false),
-    pulseStrand({ base: 0x4a1424, spark: 0xff8a90, speed: 0.22, width: 0.06, density: 2.0, rim: 0.7, intensity: 1.2, falloff: 0.000012 }));
+    pulseStrand({ base: 0x4a1424, spark: 0xff8a90, speed: 0.22, width: 0.06, density: 2.6, rim: 0.9, intensity: 1.8, falloff: 0.0000015 }));
   group.add(vessel);
 
   const path = new THREE.CatmullRomCurve3([

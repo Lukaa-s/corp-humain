@@ -27,7 +27,7 @@ export default function intestin(q = 1) {
     noiseScale: 0.04, displace: 2.4, pulseAmp: 0.2,
     bumpScale: 0.5, bumpAmp: 0.45, normalMix: 0.45,
     key: 0.26, keyDir: new THREE.Vector3(0.1, 1, 0.25), keyColor: 0xff9a5a,
-    rim: 0.6, wet: 0.5, shiny: 24, falloff: 0.00009, ambient: 0.22, light: 1.4,
+    rim: 0.6, wet: 0.5, shiny: 24, falloff: 0.00004, ambient: 0.26, light: 1.45,
     vein: true, veinAmt: 0.4, veinScale: 0.1,
   }));
   group.add(wall);
@@ -60,7 +60,7 @@ export default function intestin(q = 1) {
   }), stalkField({
     root: 0x631d0a, tip: 0xf07a34, hot: 0xffb070,
     sway: 0.20, rate: 1.4, rim: 0.7, wet: 0.3, ambient: 0.3,
-    falloff: 0.00022, tipGlow: 0.1, pulseAmp: 0.3,
+    falloff: 0.00009, tipGlow: 0.1, pulseAmp: 0.3,
   }));
   villi.frustumCulled = false;
   group.add(villi);

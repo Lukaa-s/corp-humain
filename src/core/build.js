@@ -201,7 +201,7 @@ export function segmentsToMesh(segs, material, radialSeg = 7, opts = {}) {
     dir.subVectors(s.b, s.a);
     const len = dir.length();
     if (len < 1e-4) continue;
-    const g = new THREE.CylinderGeometry(s.r1, s.r0, len, radialSeg, opts.heightSeg ?? 1, true);
+    const g = new THREE.CylinderGeometry(s.r1, s.r0, len, radialSeg, opts.heightSeg ?? 1, opts.open ?? false);
     if (opts.uvAlong) {
       const uv = g.attributes.uv;
       const d0 = (s.d0 ?? 0) * uvScale, d1 = (s.d1 ?? len) * uvScale;
