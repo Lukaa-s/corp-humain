@@ -570,6 +570,13 @@ body[data-age="enfant"] #narr-text { font-size: 15.4px; }
 
 @media (max-width: 720px) {
   .age-choice { grid-template-columns: 1fr; }
+  .station-name {
+    font-size: 19px; line-height: 1.15; white-space: nowrap;
+    overflow: hidden; text-overflow: ellipsis; max-width: 46vw;
+  }
+  .card { max-height: 40vh; bottom: calc(116px + var(--sab)); }
+  .card-title { font-size: 22px; }
+  body[data-age="enfant"] .card-title { font-size: 23px; }
   .age-card { padding: 20px; }
   .age-desc { max-width: none; }
   .hud-top { grid-template-columns: auto 1fr auto; gap: 10px; padding-bottom: 30px; }
@@ -609,3 +616,7 @@ body.locked .hotspots::before {
 
 .hotspot.crowded .hotspot-label { opacity: 0 !important; transform: translateX(-8px) scale(.94) !important; }
 .hotspot.crowded .hotspot-ring { transform: scale(.78); opacity: .7; }
+
+/* une fiche ouverte prend la place du joystick sur mobile */
+body.panel-open .stick { display: none; }
+body.panel-open .narration { opacity: 0; pointer-events: none; }

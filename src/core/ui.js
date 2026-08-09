@@ -216,6 +216,7 @@ export class UI {
     if (isStation) this._quiz(quiz);
 
     card.hidden = false;
+    document.body.classList.add('panel-open');
     if (!keepScroll) $('.card-scroll').scrollTop = 0;
     this.hotspotLayer.querySelectorAll('.hotspot').forEach(h =>
       h.classList.toggle('open', h.dataset.key === key));
@@ -254,6 +255,7 @@ export class UI {
 
   closeCard() {
     $('#card').hidden = true;
+    document.body.classList.remove('panel-open');
     this.openKey = null;
     this.hotspotLayer.querySelectorAll('.hotspot').forEach(h => h.classList.remove('open'));
   }
@@ -337,7 +339,11 @@ export class UI {
     }, 320);
   }
 
-  toggleMenu(v) { const m = $('#menu'); m.hidden = v === undefined ? !m.hidden : !v; }
+  toggleMenu(v) {
+    const m = $('#menu');
+    m.hidden = v === undefined ? !m.hidden : !v;
+    document.body.classList.toggle('panel-open', !m.hidden || !$('#card').hidden);
+  }
   toggleHelp(v) { const m = $('#help'); m.hidden = v === undefined ? !m.hidden : !v; }
 
   transit(on) { $('#transit').classList.toggle('on', on); }
