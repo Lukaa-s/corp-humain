@@ -41,7 +41,7 @@ export default function foie(q = 1) {
         const r = lerp(R_IN + 26, R_OUT - 20, ri / (NR - 1));
         const jitter = (rnd() - 0.5) * 0.055;
         const size = 15 + rnd() * 8;
-        const g = blob(size, 2, (n) => 0.13 * size * Math.sin(n.x * 5) * Math.sin(n.y * 6) * Math.sin(n.z * 5));
+        const g = blob(size, q >= 0.8 ? 2 : 1, (n) => 0.13 * size * Math.sin(n.x * 5) * Math.sin(n.y * 6) * Math.sin(n.z * 5));
         g.scale(1.0, 0.86, 1.5);
         g.rotateY(-(a + jitter));
         g.translate(Math.cos(a + jitter) * r, y + (rnd() - 0.5) * 12, Math.sin(a + jitter) * r);
@@ -131,7 +131,8 @@ export default function foie(q = 1) {
 
   /* ── le motif se répète : six voisins dans la brume ── */
   const D = (R_OUT + 32) * 1.74;
-  for (let i = 0; i < 6; i++) {
+  const NEIGH = q >= 0.8 ? 5 : 3;
+  for (let i = 0; i < NEIGH; i++) {
     const a = (i / 6) * Math.PI * 2;
     const c = lobule.clone();
     c.position.set(Math.cos(a) * D, (i % 2 ? 1 : -1) * 30, Math.sin(a) * D);

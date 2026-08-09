@@ -170,7 +170,7 @@ export default function coeur() {
   const ch = makeChannel({ ax1: 8, fx1: 0.004, ax2: 0, fx2: 0, ay1: 6, fy1: 0.005, ay2: 0, fy2: 0 });
   const N = 900;
   const at = flowAttributes(N, rnd, { radiusBias: 0.5, sizeMin: 3.4, sizeMax: 5.4, spin: 1.6 });
-  const surge = new THREE.Mesh(instanced(biconcaveGeometry(1, 18, 10), N, {
+  const surge = new THREE.Mesh(instanced(biconcaveGeometry(1, 14, 8), N, {
     aU: { array: at.aU, size: 1 }, aRad: { array: at.aRad, size: 1 }, aAng: { array: at.aAng, size: 1 },
     aSize: { array: at.aSize, size: 1 }, aSeed: { array: at.aSeed, size: 1 }, aSpin: { array: at.aSpin, size: 1 },
   }), flowCells(ch, {

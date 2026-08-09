@@ -66,7 +66,7 @@ export default function charpente(q = 1) {
     rPos[i * 3] = -380 + rr * s * Math.cos(a); rPos[i * 3 + 1] = -40 + rr * u; rPos[i * 3 + 2] = rr * s * Math.sin(a);
     rSize[i] = 7 + rnd() * 6; rSeed[i] = rnd(); rSpin[i] = (rnd() - 0.5) * 2;
   }
-  const rSrc = biconcaveGeometry(1, 18, 10);
+  const rSrc = biconcaveGeometry(1, 14, 8);
   const rGeo = new THREE.InstancedBufferGeometry();
   rGeo.index = rSrc.index;
   for (const k in rSrc.attributes) rGeo.setAttribute(k, rSrc.attributes[k]);

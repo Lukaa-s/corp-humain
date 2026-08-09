@@ -56,7 +56,7 @@ export default function sang() {
   /* ── hématies ── */
   const N_RBC = 2400;
   const rbcAttrs = flowAttributes(N_RBC, rnd, { radiusBias: 0.42, sizeMin: 2.6, sizeMax: 4.2, spin: 1.8 });
-  const rbcGeo = instanced(biconcaveGeometry(1, 22, 12), N_RBC, {
+  const rbcGeo = instanced(biconcaveGeometry(1, 16, 9), N_RBC, {
     aU: { array: rbcAttrs.aU, size: 1 }, aRad: { array: rbcAttrs.aRad, size: 1 },
     aAng: { array: rbcAttrs.aAng, size: 1 }, aSize: { array: rbcAttrs.aSize, size: 1 },
     aSeed: { array: rbcAttrs.aSeed, size: 1 }, aSpin: { array: rbcAttrs.aSpin, size: 1 },
