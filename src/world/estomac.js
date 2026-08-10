@@ -25,7 +25,6 @@ export default function estomac(q = 1) {
     deep: 0x33230a, mid: 0xc09a3e, hot: 0xffe49c,
     noiseScale: 0.018, displace: 10, pulseAmp: 0.35,
     bumpScale: 0.14, bumpAmp: 0.3, normalMix: 0.4,
-    key: 0.32, keyDir: new THREE.Vector3(0.15, 1, 0.2), keyColor: 0xffcf7a,
     rim: 0.62, wet: 0.3, shiny: 15, falloff: 0.000008, ambient: 0.3, light: 1.5,
     vein: true, veinAmt: 0.45, veinScale: 0.045,
   });
@@ -137,6 +136,12 @@ export default function estomac(q = 1) {
     group, path, spots, spotFar: 520,
     speed: 0.0095, freeSpeed: 100, lookAhead: 0.016, fov: 76, shake: 0.55,
     bounds: { type: 'sphere', center: new THREE.Vector3(0, 0, 0), radius: R * 0.9 },
+    // ambre acide, complément vert : ça tourne au vinaigre
+    light: {
+      key:  { dir: [0.15, 0.9, 0.2], color: 0xffc040, int: 0.34 },
+      fill: { dir: [-0.5, -0.6, 0.4], color: 0x204a20, int: 0.24 },
+      sky:  { top: 0x8a6010, bot: 0x180c02, int: 0.18 },
+    },
     grade: { bloom: 0.55, tint: [1.05, 1.02, 0.9], vig: 0.62, exposure: 0.98 },
     update(t, dt) {
       wy -= dt * 105;

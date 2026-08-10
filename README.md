@@ -1,9 +1,8 @@
 # INTÉRIEUR — Voyage dans le corps humain
 
-Une visite guidée en 3D, dans le navigateur, de l'intérieur du corps humain.
-Onze escales — de la couche cornée de la peau jusqu'à la double hélice — en
-**version enfant** (dès 7 ans) et en **version adulte** (anatomie et
-physiologie détaillées).
+Une exploration en 3D, dans le navigateur, de l'intérieur du corps humain.
+Onze escales — de la peau jusqu'à l'ADN — en **version enfant** (dès 7 ans) et
+en **version adulte**, avec trois missions et une relique cachée par escale.
 
 ▶ **[Ouvrir la visite](https://lukaa-s.github.io/corp-humain/)**
 
@@ -11,11 +10,20 @@ physiologie détaillées).
 
 - **11 mondes 3D entièrement procéduraux** : aucun modèle 3D, aucune texture,
   aucune image. Tout est généré par le code au chargement de chaque escale.
-- **Deux modes de déplacement** : visite guidée sur rail (on regarde librement
-  autour de soi) ou vol libre six axes.
+- **Vol libre six axes**, seul mode de déplacement. Un clic sur un repère ou la
+  touche `G` fait voyager la sonde jusqu'au point voulu.
+- **Une couche de jeu** : trois missions par escale, des échantillons à récolter
+  en volant dedans, une relique cachée près des limites, un score et un badge
+  par escale. La progression est conservée d'une session à l'autre.
 - **Deux écritures du contenu**, permutables à tout moment sans quitter la scène.
-- **Son entièrement synthétisé** (WebAudio) : bourdon d'organe, souffle,
-  battements cardiaques.
+  Le registre adulte n'emploie aucun terme technique sans le traduire.
+- **Un banc de lumières par escale** : clé, complément et ambiance ciel/sol
+  propres à chaque organe — c'est ce qui distingue le relief d'un poumon de
+  celui d'un os.
+- **Son entièrement synthétisé** (WebAudio) : une nappe et un lit de bruit par
+  organe, plus des évènements propres au lieu (bulles, gouttes, craquements,
+  crépitements). Le battement cardiaque enfle à mesure qu'on remonte l'artère
+  vers le cœur.
 
 ## Les escales
 
@@ -39,8 +47,8 @@ physiologie détaillées).
 |--------|-------|
 | `Z Q S D` / flèches | Se déplacer |
 | Souris | Regarder autour de soi |
-| `Espace` | Visite guidée ↔ exploration libre |
-| `Maj` / `Ctrl` | Monter / descendre |
+| `Espace` / `Ctrl` | Monter / descendre |
+| `G` | Se faire emmener jusqu'à la mission en cours |
 | `,` `.` | Escale précédente / suivante |
 | `E` ou `Entrée` | Ouvrir la fiche du repère visé |
 | `H` | Masquer l'interface (mode photo) |
@@ -74,19 +82,21 @@ node build.mjs        # → dist/interieur.html
 | `?age=enfant` | Choisir la version d'emblée |
 | `?q=0.4` | Densité géométrique (0,12 à 1) |
 | `?dpr=1` | Résolution de rendu |
+| `?debug=1` | Expose `window.__app` (scène, sonde, jeu, son) |
 
 ## Architecture
 
 ```
-src/core/     moteur — shaders, matériaux, post-traitement, caméra, son, UI
-src/world/    un module par escale, qui construit sa géométrie et son rail
-src/content/  tout le texte, en deux écritures
+src/core/     moteur — shaders, matériaux, post-traitement, caméra, son, jeu, UI
+src/world/    un module par escale, qui construit sa géométrie et sa lumière
+src/content/  tout le texte en deux écritures, et les missions
 vendor/three/ Three.js r180 (module + addons de post-traitement)
 ```
 
 Le rendu repose sur une petite famille de matériaux GLSL maison — tissu,
 membrane, halo, particules en flux, champ de tiges — partageant un même jeu
-d'uniformes (temps, battement, respiration, brouillard) mis à jour une fois
-par image.
+d'uniformes (temps, battement, respiration, brouillard, banc de lumières) mis à
+jour une fois par image. Budget géométrique maximal mesuré : environ 1 million
+de triangles par escale à pleine qualité.
 
 Nécessite WebGL 2.

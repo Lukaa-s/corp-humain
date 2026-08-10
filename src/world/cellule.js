@@ -138,7 +138,6 @@ export default function cellule(q = 1) {
   const strandMat = tissue({
     side: THREE.FrontSide, bump: false,
     deep: 0x143a58, mid: 0x58aade, hot: 0xdcf4ff,
-    key: 0.32, keyDir: new THREE.Vector3(0.3, 1, 0.4), keyColor: 0x9fe0ff,
     noiseScale: 0.2, displace: 0.5, rim: 1.0, wet: 0.6, shiny: 40,
     falloff: 0.000006, ambient: 0.4, normalMix: 0.3, emissive: 0x0c2438,
   });
@@ -211,6 +210,12 @@ export default function cellule(q = 1) {
     group, path, spots, focus, spotFar: 1250,
     speed: 0.0068, freeSpeed: 150, lookAhead: 0.014, fov: 72, shake: 0.25,
     bounds: { type: 'sphere', center: new THREE.Vector3(0, 0, 380), radius: 1450 },
+    // cristallin, froid, luminescent
+    light: {
+      key:  { dir: [0.3, 1, 0.4], color: 0xb0e8ff, int: 0.42 },
+      fill: { dir: [-0.5, -0.5, -0.4], color: 0x6020c0, int: 0.26 },
+      sky:  { top: 0x80c0ff, bot: 0x0a0820, int: 0.22 },
+    },
     grade: { bloom: 0.9, tint: [0.96, 1.02, 1.06], vig: 0.52, exposure: 1.18 },
     update(t, dt, pulse, breath, cam) {
       dna.rotation.y = t * 0.11;

@@ -289,6 +289,9 @@ body[data-age="adulte"] .age-thumb { transform: translateX(calc(100% - 6px)); }
 .bm-dot { fill: rgba(255,255,255,.45); r: 2.8; stroke: none; }
 .bm-dot.seen { fill: color-mix(in srgb, var(--accent) 62%, white); }
 .bm-dot.now  { fill: var(--accent); r: 4.2; filter: drop-shadow(0 0 7px var(--accent)); }
+.bm-dot.badge { fill: #ffc86a; filter: drop-shadow(0 0 7px rgba(255,200,106,.9)); }
+.menu-list li.badge .menu-tick { opacity: 1; color: #ffc86a; }
+.menu-list li.badge .menu-num { color: #ffc86a; }
 .bm-pulse { fill: none; stroke: var(--accent); stroke-width: .9; opacity: 0; transform-box: fill-box; transform-origin: center; }
 .bm-pulse.now { animation: bmp 2.4s var(--ease-out) infinite; }
 @keyframes bmp { 0% { r: 4; opacity: .85 } 100% { r: 13; opacity: 0 } }
@@ -319,6 +322,20 @@ body[data-age="adulte"] .age-thumb { transform: translateX(calc(100% - 6px)); }
   overflow: hidden; animation: cardIn .5s var(--ease-out) both;
 }
 .card[hidden] { display: none; }
+
+/* Lecture : la sonde est immobilisée, on assombrit le décor et on rend le
+   panneau franchement opaque. Une fiche translucide sur un tissu qui bouge
+   est illisible. */
+body.reading #vignette::after {
+  content: ''; position: absolute; inset: 0; background: rgba(4,3,7,.5);
+  animation: dimIn .4s var(--ease-out) both; pointer-events: none;
+}
+body.reading .card { background: rgba(11,9,15,.94); }
+body.reading .hotspot { opacity: .25 !important; }
+@keyframes dimIn { from { opacity: 0 } to { opacity: 1 } }
+
+.card.is-relic { border-color: rgba(255,200,106,.45); box-shadow: 0 40px 90px -30px rgba(0,0,0,.9), 0 0 60px -20px rgba(255,200,106,.5); }
+.card.is-relic .card-kicker { color: #ffc86a; }
 @keyframes cardIn { from { opacity: 0; transform: translate(22px, -50%) } to { opacity: 1; transform: translate(0, -50%) } }
 .card::before {
   content: ''; position: absolute; inset: 0 0 auto; height: 2px;
@@ -430,36 +447,100 @@ body[data-age="enfant"] .card-body { font-size: 15.6px; line-height: 1.72; }
   background: linear-gradient(to top, rgba(4,3,6,.88), rgba(4,3,6,.42) 46%, rgba(4,3,6,.1) 78%, transparent);
 }
 
-.mode-toggle {
-  display: inline-flex; padding: 3px; border-radius: 99px; justify-self: start;
-  border: 1px solid var(--line); background: var(--panel);
+/* ── carnet de missions ── */
+.quests {
+  justify-self: start; width: min(310px, 46vw);
+  border: 1px solid var(--line); border-radius: 16px; background: var(--panel);
   backdrop-filter: var(--blur); -webkit-backdrop-filter: var(--blur);
+  overflow: hidden;
 }
-.mode-toggle button {
-  display: inline-flex; align-items: center; gap: 7px; height: 32px; padding: 0 14px; border-radius: 99px;
-  font-size: 12.4px; font-weight: 500; color: var(--muted); transition: all .3s var(--ease);
+.quests[hidden] { display: none; }
+.quests-head {
+  display: flex; align-items: center; gap: 9px; width: 100%; height: 38px; padding: 0 12px;
+  font-size: 12.4px; font-weight: 500; color: var(--ink-soft); letter-spacing: .02em;
 }
-.mode-toggle button svg { width: 14px; height: 14px; }
-.mode-toggle button.on { color: #06050a; background: var(--accent); box-shadow: 0 2px 16px -3px var(--accent); }
-.mode-toggle button:not(.on):hover { color: var(--ink); }
+.quests-ico { width: 14px; height: 14px; flex: none; color: var(--accent-station, var(--accent)); }
+.quests-title { flex: 1; text-align: left; }
+.quests-count {
+  font-variant-numeric: tabular-nums; font-size: 11.5px; color: var(--muted);
+  padding: 2px 7px; border-radius: 99px; background: rgba(255,255,255,.06);
+}
+.quests-score { display: none; font-size: 11.5px; color: #ffc86a; font-variant-numeric: tabular-nums; }
+.quests-chev { width: 14px; height: 14px; color: var(--muted); transition: transform .3s var(--ease); }
+.quests.folded .quests-chev { transform: rotate(-90deg); }
+.quests.folded .quest-list,
+.quests.folded .quest-guide { display: none; }
 
-.tour-controls { display: flex; align-items: center; gap: 10px; justify-self: center; }
-.tour-controls button {
+.quest-list { list-style: none; margin: 0; padding: 2px 12px 10px; display: grid; gap: 7px; }
+.quest { display: flex; align-items: flex-start; gap: 9px; font-size: 12.6px; line-height: 1.38; color: var(--ink-soft); }
+.quest-tick {
+  flex: none; width: 15px; height: 15px; margin-top: 1px; border-radius: 5px;
+  border: 1.5px solid var(--line-strong); display: grid; place-items: center;
+  transition: all .32s var(--ease);
+}
+.quest-tick svg { width: 11px; height: 11px; stroke-width: 3; opacity: 0; transform: scale(.5); transition: all .32s var(--ease); }
+.quest.done .quest-tick { background: var(--accent-station, var(--accent)); border-color: transparent; }
+.quest.done .quest-tick svg { opacity: 1; transform: none; color: #06050a; }
+.quest.done .quest-text { color: var(--muted); text-decoration: line-through; text-decoration-color: rgba(255,255,255,.25); }
+.quest-text i { font-style: normal; font-variant-numeric: tabular-nums; color: var(--accent-station, var(--accent)); }
+.quest.done .quest-text i { color: inherit; }
+
+.quest-guide {
+  display: flex; align-items: center; justify-content: center; gap: 7px;
+  width: calc(100% - 24px); margin: 0 12px 11px; height: 32px; border-radius: 9px;
+  border: 1px solid var(--line-strong); color: var(--ink-soft);
+  font-size: 12.2px; font-weight: 500; transition: all .26s var(--ease);
+}
+.quest-guide svg { width: 13px; height: 13px; }
+.quest-guide:hover { color: #06050a; background: var(--accent-station, var(--accent)); border-color: transparent; }
+
+.station-nav { display: flex; align-items: center; gap: 12px; justify-self: center; }
+.station-nav button {
   width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center;
   border: 1px solid var(--line); background: var(--panel); color: var(--ink-soft);
   backdrop-filter: var(--blur); -webkit-backdrop-filter: var(--blur);
   transition: all .26s var(--ease);
 }
-.tour-controls button:hover { color: var(--ink); border-color: var(--line-strong); transform: scale(1.06); }
-.tour-controls button svg { width: 15px; height: 15px; }
-#btn-play { width: 44px; height: 44px; border-color: var(--line-strong); }
-#btn-play svg { width: 16px; height: 16px; }
-#btn-play .i-play { display: none; }
-#btn-play.paused .i-play { display: block; }
-#btn-play.paused .i-pause { display: none; }
-.tour-line { position: absolute; left: 4px; right: 4px; bottom: -13px; height: 2px; border-radius: 2px; background: rgba(255,255,255,.13); overflow: hidden; }
-.tour-controls { position: relative; }
-.tour-line i { display: block; height: 100%; width: 0; background: var(--accent); transition: width .18s linear; }
+.station-nav button:hover:not(:disabled) { color: var(--ink); border-color: var(--line-strong); transform: scale(1.06); }
+.station-nav button:disabled { opacity: .3; }
+.station-nav button svg { width: 15px; height: 15px; }
+.station-pager { font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; letter-spacing: .08em; }
+.station-pager b { color: var(--ink-soft); font-weight: 500; }
+
+/* ── annonces ── */
+.toasts {
+  position: absolute; left: 50%; top: 88px; transform: translateX(-50%);
+  display: grid; gap: 8px; justify-items: center; pointer-events: none; z-index: 6;
+}
+.toast {
+  display: grid; gap: 2px; justify-items: center; text-align: center;
+  padding: 11px 20px; border-radius: 13px; min-width: 220px;
+  border: 1px solid var(--line-strong); background: rgba(12,10,16,.86);
+  backdrop-filter: var(--blur); -webkit-backdrop-filter: var(--blur);
+  opacity: 0; transform: translateY(-10px) scale(.96);
+  transition: opacity .42s var(--ease), transform .42s var(--ease);
+}
+.toast.on { opacity: 1; transform: none; }
+.toast b { font-size: 12.6px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--accent-station, var(--accent)); }
+.toast span { font-size: 13px; color: var(--ink-soft); line-height: 1.4; }
+.toast.badge { border-color: var(--accent); box-shadow: 0 0 40px -12px var(--accent); }
+.toast.relic b { color: #ffc86a; }
+.toast.relic { border-color: rgba(255,200,106,.5); box-shadow: 0 0 44px -12px rgba(255,200,106,.6); }
+
+/* pouls : le même battement dans les onze escales, pour qu'on fasse le lien */
+.chip-pulse { display: inline-flex; align-items: center; gap: 6px; padding: 0 11px; }
+.chip-pulse svg {
+  width: 14px; height: 14px; fill: #ff5a6e; stroke: none;
+  transform-origin: center; transition: transform .42s var(--ease-out);
+}
+.chip-pulse.beat svg { transform: scale(1.42); transition: transform .07s ease-out; }
+.chip-pulse b { font-size: 12.4px; font-weight: 600; font-variant-numeric: tabular-nums; color: var(--ink-soft); }
+.chip-pulse b::after { content: ' bpm'; font-size: 10px; font-weight: 400; color: var(--muted); }
+
+/* score */
+.chip-score { display: inline-flex; align-items: center; gap: 6px; padding: 0 12px; }
+.chip-score svg { width: 13px; height: 13px; color: #ffc86a; }
+.chip-score b { font-size: 12.6px; font-weight: 600; font-variant-numeric: tabular-nums; color: var(--ink); }
 
 .hint {
   justify-self: end; text-align: right; margin: 0; max-width: 30ch;
@@ -585,11 +666,27 @@ body[data-age="enfant"] #narr-text { font-size: 15.4px; }
   .station-head { text-align: left; }
   .station-sub { display: none; }
   .age-switch button { padding: 0 10px; font-size: 11.4px; }
-  .hud-bottom { grid-template-columns: 1fr; gap: 12px; justify-items: center; padding-bottom: calc(14px + var(--sab)); }
-  .mode-toggle { justify-self: center; }
+  .hud-bottom {
+    grid-template-columns: 1fr; gap: 10px; justify-items: stretch;
+    padding: 30px calc(12px + var(--sar)) calc(12px + var(--sab)) calc(12px + var(--sal));
+  }
   .hint { display: none; }
+  /* la barre du haut est étroite : le pouls garde son cœur, le score
+     redescend dans le carnet de missions plutôt que de tout faire déborder */
+  .chip-pulse { padding: 0 9px; }
+  .chip-pulse b { display: none; }
+  .chip-score { display: none; }
+  .quests-score { display: inline; }
+  /* le carnet passe pleine largeur, sous le décor, et se replie d'un doigt */
+  .quests { width: 100%; order: 2; }
+  .quest-list { padding-bottom: 8px; }
+  .station-nav { order: 1; justify-self: center; }
   .help-keys > div { grid-template-columns: 1fr; gap: 4px; }
-  .stick { bottom: calc(150px + var(--sab)); }
+  /* le joystick se pose au-dessus du carnet, jamais dessous */
+  .stick { bottom: calc(210px + var(--sab)); }
+  .quests.folded ~ .stick, body:has(.quests.folded) .stick { bottom: calc(120px + var(--sab)); }
+  .toasts { top: 74px; width: min(92vw, 340px); }
+  .toast { min-width: 0; width: 100%; }
 }
 
 @media (max-height: 560px) {

@@ -28,7 +28,6 @@ export default function poumons(q = 1) {
     deep: 0x35181e, mid: 0xcc868a, hot: 0xffdad4,
     noiseScale: 0.045, displace: 1.6, breathAmp: 0.5,
     bumpScale: 0.55, bumpAmp: 0.4, normalMix: 0.5,
-    key: 0.24, keyDir: new THREE.Vector3(0.2, 1, 0.3), keyColor: 0xffc0c8,
     rim: 0.6, wet: 0.45, shiny: 28, falloff: 0.00016, ambient: 0.24, light: 1.35,
     vein: true, veinAmt: 0.35, veinScale: 0.12,
   }));
@@ -114,7 +113,6 @@ export default function poumons(q = 1) {
   const caps = new THREE.Mesh(mergeGeometries(capGeos), tissue({
     side: THREE.DoubleSide, bump: false,
     deep: 0x4a0812, mid: 0xd03a48, hot: 0xff9a8c,
-    key: 0.3, keyDir: new THREE.Vector3(0.2, 1, 0.3), keyColor: 0xffc0c8,
     noiseScale: 0.08, displace: 0.5, breathAmp: 0.1,
     rim: 0.9, wet: 0.5, shiny: 30, falloff: 0.000012, ambient: 0.3, normalMix: 0.35,
   }));
@@ -159,6 +157,12 @@ export default function poumons(q = 1) {
     group, path, spots, spotFar: 620,
     speed: 0.0095, freeSpeed: 90, lookAhead: 0.014, fov: 72, shake: 0.4,
     bounds: { type: 'sphere', center: new THREE.Vector3(0, 0, 420), radius: 900 },
+    // brume matinale : tout est diffus, peu de contraste
+    light: {
+      key:  { dir: [0.2, 0.95, 0.3], color: 0xffd8dc, int: 0.4 },
+      fill: { dir: [-0.3, -0.5, -0.7], color: 0x90b0ff, int: 0.32 },
+      sky:  { top: 0xd8e0ff, bot: 0x503038, int: 0.34 },
+    },
     grade: { bloom: 0.8, tint: [0.97, 1.0, 1.05], vig: 0.48, exposure: 1.1 },
     update(t, dt, pulse, breath, cam) {
       if (cam) { o2.position.copy(cam.position); co2.position.copy(cam.position); }

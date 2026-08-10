@@ -112,6 +112,38 @@ vec3 hbFog(vec3 col, float dist){
 }
 `;
 
+/**
+ * BANC DE LUMIÈRES — partagé par toute la scène, réglé par escale.
+ *
+ * Jusqu'ici chaque matériau s'éclairait avec dot(N, V) : la lumière venait
+ * donc toujours de la sonde, dans toutes les escales, ce qui donnait à tout
+ * le voyage le même relief. Ici trois sources indépendantes de la caméra —
+ * une clé, un complément, une ambiance ciel/sol — donnent à chaque organe
+ * sa direction et sa couleur propres. La lampe frontale reste en plus,
+ * gérée par chaque matériau (uLight / uFall).
+ */
+export const LIGHT = /* glsl */`
+uniform vec3  uKeyDir, uKeyCol, uFillDir, uFillCol, uSkyCol, uGndCol;
+uniform float uKeyInt, uFillInt, uSkyInt;
+uniform float uLitKey, uLitFill, uLitSky;
+
+/* Diffus enveloppant : la lumière déborde derrière le terminateur, comme
+   dans un tissu translucide traversé par le sang. */
+float hbWrap(float d, float w){ return clamp((d + w) / (1.0 + w), 0.0, 1.0); }
+
+vec3 hbRig(vec3 alb, vec3 N, vec3 V, float ao, float wrap, float shiny, float wet){
+  vec3 c = mix(uGndCol, uSkyCol, N.y * 0.5 + 0.5) * uSkyInt * uLitSky * ao * alb;
+
+  vec3 kc = uKeyCol * (uKeyInt * uLitKey);
+  c += alb * kc * hbWrap(dot(N, uKeyDir), wrap) * mix(0.5, 1.0, ao);
+  c += kc * pow(max(dot(N, normalize(uKeyDir + V)), 0.0), shiny) * wet;
+
+  vec3 fc = uFillCol * (uFillInt * uLitFill);
+  c += alb * fc * hbWrap(dot(N, uFillDir), wrap * 1.5 + 0.2) * ao;
+  return c;
+}
+`;
+
 /* Petites fonctions d'appoint. */
 export const UTIL = /* glsl */`
 float hbSat(float x){ return clamp(x, 0.0, 1.0); }

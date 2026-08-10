@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { tissue, flowCells, flowPoints, flowAttributes, instanced, glow } from '../core/mat.js';
+import { tissue, flowCells, flowPoints, flowAttributes, instanced, glow, U } from '../core/mat.js';
 import { makeChannel, channelTube, biconcaveGeometry, blob, rng, mergeGeometries } from '../core/build.js';
 
 /**
@@ -28,6 +28,7 @@ export default function sang() {
     bumpScale: 0.6, bumpAmp: 0.42, normalMix: 0.6,
     rim: 0.62, wet: 0.45, shiny: 30, falloff: 0.00035, ambient: 0.2, light: 1.3,
     vein: true, veinAmt: 0.55, veinScale: 0.09,
+    wave: true, waveWidth: 190, waveAmp: 3.4, waveGlow: 0.75,
   });
   const wall = new THREE.Mesh(wallGeo, wallMat);
   group.add(wall);
@@ -49,6 +50,7 @@ export default function sang() {
     deep: 0x3a0810, mid: 0xc25060, hot: 0xffb0a4,
     noiseScale: 0.1, displace: 0.4, rim: 0.9, wet: 0.5, shiny: 34,
     falloff: 0.0004, ambient: 0.22, normalMix: 0.3,
+    wave: true, waveWidth: 190, waveAmp: 3.0, waveGlow: 1.1,
   }));
   ringGeos.forEach(g => g.dispose());
   group.add(rings);
@@ -148,9 +150,20 @@ export default function sang() {
     group, path, spots, spotFar: 330,
     speed: 0.0125, freeSpeed: 60, lookAhead: 0.014, fov: 74, shake: 0.75,
     bounds: { type: 'tube', channel: ch, z0: Z0 + 40, z1: Z1 - 40, radius: R },
+    // aucune source extérieure : le sang lui-même rougeoie
+    light: {
+      key:  { dir: [0.2, 0.9, 0.2], color: 0xff5a5a, int: 0.3 },
+      fill: { dir: [-0.4, -0.7, 0.3], color: 0x7a0018, int: 0.3 },
+      sky:  { top: 0xb0202c, bot: 0x300006, int: 0.22 },
+    },
     grade: { bloom: 0.62, tint: [1.06, 0.96, 0.96], vig: 0.6, exposure: 1.05 },
     update(t, dt, pulse, breath, cam) {
       if (cam) halo.position.copy(cam.position);
+      // L'onde de pression part du cœur (en z bas) et remonte le conduit à
+      // chaque battement. Elle traverse en un peu plus de la moitié du cycle :
+      // on la voit passer, puis la paroi se calme jusqu'au coup suivant.
+      const span = Z1 - Z0 + 700;
+      U.uWaveZ.value = Z0 - 260 + (U.uBeat.value / 0.62) * span;
     },
   };
 }

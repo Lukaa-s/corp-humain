@@ -33,7 +33,6 @@ export default function peau() {
     bumpScale: 0.09, bumpAmp: 0.42, normalMix: 0.7,
     rim: 0.2, wet: 0.14, shiny: 16, falloff: 0.0000045,
     ambient: 0.62, light: 1.0,
-    key: 1.15, keyDir: new THREE.Vector3(-0.62, 0.55, 0.56), keyColor: 0xffd6ae,
     crack: 0.72, crackScale: 0.03,
   }));
   ground.position.y = -6;
@@ -84,8 +83,7 @@ export default function peau() {
     side: THREE.DoubleSide, deep: 0x4a2412, mid: 0xc98a58, hot: 0xffe0b8,
     noiseScale: 0.05, displace: 0.9, bumpScale: 0.3, bumpAmp: 0.25, normalMix: 0.4,
     rim: 0.9, wet: 0.45, shiny: 30, falloff: 0.0000075, ambient: 0.5,
-    key: 1.0, keyDir: new THREE.Vector3(-0.62, 0.55, 0.56), keyColor: 0xffd6ae,
-  }), 8);
+    }), 8);
   group.add(hairs);
 
   /* ── le pore : entonnoir + bourrelet ── */
@@ -113,8 +111,7 @@ export default function peau() {
       side: THREE.FrontSide, deep: 0x3d1a12, mid: 0xb87a5e, hot: 0xffd0ad,
       noiseScale: 0.02, displace: 8, bumpScale: 0.2, bumpAmp: 0.4, normalMix: 0.6,
       rim: 0.4, wet: 0.25, shiny: 18, falloff: 0.000006, ambient: 0.55,
-      key: 1.0, keyDir: new THREE.Vector3(-0.62, 0.55, 0.56), keyColor: 0xffd6ae,
-    })
+      })
   );
   lip.rotation.x = Math.PI / 2;
   lip.position.copy(PORE).add(new THREE.Vector3(0, 16, 0));
@@ -149,8 +146,7 @@ export default function peau() {
     side: THREE.DoubleSide, flat: true, bump: false,
     deep: 0x8a5c44, mid: 0xe8bfa2, hot: 0xfff0e0,
     noiseScale: 0.02, displace: 0, rim: 0.7, wet: 0.2, shiny: 12,
-    falloff: 0.000008, ambient: 0.66, key: 0.9, keyDir: new THREE.Vector3(-0.62, 0.55, 0.56),
-  }));
+    falloff: 0.000008, ambient: 0.66, }));
   flakeGeos.forEach(g2 => g2.dispose());
   group.add(flakes);
 
@@ -164,6 +160,12 @@ export default function peau() {
     group, path, spots, spotFar: 1500,
     speed: 0.0145, freeSpeed: 160, lookAhead: 0.02, fov: 72, shake: 0.35,
     bounds: { type: 'sphere', center: new THREE.Vector3(0, 60, 60), radius: 1250, floor: -400 },
+    // plein soleil rasant, ciel bleu en rebond
+    light: {
+      key:  { dir: [-0.62, 0.55, 0.56], color: 0xffd0a0, int: 0.88 },
+      fill: { dir: [0.5, -0.2, -0.6], color: 0x6090ff, int: 0.22 },
+      sky:  { top: 0xffb488, bot: 0x401808, int: 0.3 },
+    },
     grade: { bloom: 0.38, tint: [1.03, 0.99, 0.95], vig: 0.52, exposure: 0.96 },
     update(t) {
       flakes.rotation.y = t * 0.008;

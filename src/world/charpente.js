@@ -38,7 +38,6 @@ export default function charpente(q = 1) {
     side: THREE.DoubleSide, deep: 0x3a3026, mid: 0xd8cbb2, hot: 0xfff4e0,
     noiseScale: 0.03, displace: 2.4, bumpScale: 0.45, bumpAmp: 0.4, normalMix: 0.5,
     rim: 0.55, wet: 0.22, shiny: 16, falloff: 0.0000025, ambient: 0.34, light: 1.3,
-    key: 0.78, keyDir: new THREE.Vector3(0.34, 0.86, 0.28), keyColor: 0xffeeda,
     vein: true, veinAmt: 0.35, veinScale: 0.06,
   }), 8);
   group.add(lattice);
@@ -160,6 +159,12 @@ export default function charpente(q = 1) {
     group, path, spots, spotFar: 1150,
     speed: 0.008, freeSpeed: 150, lookAhead: 0.016, fov: 72, shake: 0.3,
     bounds: { type: 'sphere', center: new THREE.Vector3(0, 0, -100), radius: 1400 },
+    // éclairage de musée : sculptural, contrasté
+    light: {
+      key:  { dir: [0.34, 0.86, 0.28], color: 0xfff0dc, int: 0.85 },
+      fill: { dir: [-0.7, -0.2, -0.6], color: 0x304060, int: 0.16 },
+      sky:  { top: 0xa0a8c0, bot: 0x201810, int: 0.14 },
+    },
     grade: { bloom: 0.55, tint: [1.04, 1.0, 0.96], vig: 0.55, exposure: 1.02 },
     update(t, dt, pulse, breath, cam) {
       if (cam) dust.position.copy(cam.position);

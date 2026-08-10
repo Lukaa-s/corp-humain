@@ -1,20 +1,42 @@
 import * as THREE from 'three';
-import { NOISE, CURVE, FOG, UTIL } from './glsl.js';
+import { NOISE, CURVE, FOG, UTIL, LIGHT } from './glsl.js';
 
 /* ══════════ uniformes partagés par toute la scène ══════════
    Un seul objet par uniforme : le mettre à jour met à jour tous
    les matériaux qui le référencent.                              */
 export const U = {
   uTime:       { value: 0 },
-  uPulse:      { value: 0 },     // battement cardiaque 0→1
+  uPulse:      { value: 0 },     // intensité du battement 0→1
+  uBeat:       { value: 0 },     // phase du cycle cardiaque 0→1
+  uWaveZ:      { value: -1e6 },  // position du front de l'onde de pression
   uBreath:     { value: 0 },     // respiration -1→1
   uFogColor:   { value: new THREE.Color(0x14060b) },
   uFogDensity: { value: 0.018 },
   uVivid:      { value: 1.0 },   // saturation globale (plus haute en version enfant)
   uPx:         { value: 800 },   // facteur de taille des points (dépend du viewport)
+
+  /* Banc de lumières de l'escale — voir LIGHT dans glsl.js.
+     Chaque escale pose sa propre direction et sa propre couleur : c'est ce
+     qui distingue le relief d'un poumon de celui d'un os. */
+  uKeyDir:  { value: new THREE.Vector3(0.4, 1, 0.3).normalize() },
+  uKeyCol:  { value: new THREE.Color(0xffe6cf) },
+  uKeyInt:  { value: 0.5 },
+  uFillDir: { value: new THREE.Vector3(-0.5, -0.4, -0.6).normalize() },
+  uFillCol: { value: new THREE.Color(0x4a6cff) },
+  uFillInt: { value: 0.18 },
+  uSkyCol:  { value: new THREE.Color(0x6a7cff) },
+  uGndCol:  { value: new THREE.Color(0x2a0a10) },
+  uSkyInt:  { value: 0.16 },
 };
 
 const g = (extra) => Object.assign({}, U, extra);
+
+/* Réponse d'un matériau au banc de lumières (multiplicateurs locaux). */
+const lit = (o) => ({
+  uLitKey:  { value: o.litKey ?? 1.0 },
+  uLitFill: { value: o.litFill ?? 1.0 },
+  uLitSky:  { value: o.litSky ?? 1.0 },
+});
 
 const ROT = /* glsl */`
 mat3 hbRotAxis(vec3 a, float ang){
@@ -35,6 +57,9 @@ export function tissue(o = {}) {
   if (o.bump !== false) defines.HB_BUMP = '';
   if (o.vein) defines.HB_VEIN = '';
   if (o.flat) defines.HB_FLAT = '';
+  // onde de pression : un renflement lumineux qui remonte le conduit à chaque
+  // battement. C'est ce qui rend visible que le cœur commande, même loin de lui.
+  if (o.wave) defines.HB_WAVE = '';
   // Par défaut la surface est toujours éclairée du côté de la sonde : on ne
   // dépend donc jamais du sens d'enroulement des triangles.
   if (o.faceView !== false) defines.HB_FACEVIEW = '';
@@ -67,17 +92,22 @@ export function tissue(o = {}) {
       uVeinScale:  { value: o.veinScale ?? 0.12 },
       uAlpha:      { value: o.alpha ?? 1.0 },
       uSide:       { value: o.side === THREE.FrontSide ? 1 : -1 },
-      uKeyDir:     { value: (o.keyDir ?? new THREE.Vector3(0.4, 1, 0.3)).clone().normalize() },
-      uKeyColor:   { value: new THREE.Color(o.keyColor ?? 0xffe6cf) },
-      uKeyInt:     { value: o.key ?? 0.0 },
       uCrack:      { value: o.crack ?? 0.0 },
       uCrackScale: { value: o.crackScale ?? 0.09 },
+      uWrap:       { value: o.wrap ?? 0.38 },
+      uAO:         { value: o.ao ?? 0.55 },
+      uWaveWidth:  { value: o.waveWidth ?? 200 },
+      uWaveAmp:    { value: o.waveAmp ?? 3.0 },
+      uWaveGlow:   { value: o.waveGlow ?? 0.5 },
+      ...lit(o),
     }),
     vertexShader: /* glsl */`
       ${NOISE}
       uniform float uTime, uPulse, uBreath, uNoiseScale, uDisplace, uFlowSpeed, uPulseAmp, uBreathAmp;
-      varying vec3 vWorld; varying vec3 vNrm; varying vec2 vUv; varying float vN;
+      uniform float uWaveZ, uWaveWidth, uWaveAmp;
+      varying vec3 vWorld; varying vec3 vNrm; varying vec2 vUv; varying float vN; varying float vWave;
       void main(){
+        vWave = 0.0;
         vUv = uv;
         vec3 p = position;
         vec3 np = p * uNoiseScale + vec3(0.0, 0.0, -uTime * uFlowSpeed);
@@ -85,17 +115,22 @@ export function tissue(o = {}) {
         vN = n;
         float amp = uDisplace * (1.0 + uPulse * uPulseAmp + uBreath * uBreathAmp);
         p += normal * (n * amp);
+      #ifdef HB_WAVE
+        float dw = (p.z - uWaveZ) / uWaveWidth;
+        vWave = exp(-dw * dw);
+        p += normal * (vWave * uWaveAmp);
+      #endif
         vec4 wp = modelMatrix * vec4(p, 1.0);
         vWorld = wp.xyz;
         vNrm = normalize(mat3(modelMatrix) * normal);
         gl_Position = projectionMatrix * viewMatrix * wp;
       }`,
     fragmentShader: /* glsl */`
-      ${NOISE}${UTIL}${FOG}
-      uniform vec3 uDeep, uMid, uHot, uEmissive, uKeyDir, uKeyColor;
-      uniform float uRim, uWet, uShiny, uFall, uLight, uAmbient, uVivid, uKeyInt, uCrack, uCrackScale;
-      uniform float uBumpScale, uBumpAmp, uNormalMix, uVein, uVeinScale, uAlpha, uPulse, uTime, uNoiseScale;
-      varying vec3 vWorld; varying vec3 vNrm; varying vec2 vUv; varying float vN;
+      ${NOISE}${UTIL}${FOG}${LIGHT}
+      uniform vec3 uDeep, uMid, uHot, uEmissive;
+      uniform float uRim, uWet, uShiny, uFall, uLight, uAmbient, uVivid, uCrack, uCrackScale, uWrap, uAO;
+      uniform float uBumpScale, uBumpAmp, uNormalMix, uVein, uVeinScale, uAlpha, uPulse, uTime, uNoiseScale, uWaveGlow;
+      varying vec3 vWorld; varying vec3 vNrm; varying vec2 vUv; varying float vN; varying float vWave;
       void main(){
         vec3 V = cameraPosition - vWorld;
         float dist = length(V);
@@ -118,6 +153,7 @@ export function tissue(o = {}) {
         gN *= (dot(gN, nrm) < 0.0) ? -1.0 : 1.0;
         vec3 N = normalize(mix(nrm, gN, uNormalMix * mix(0.35, 1.0, lodG)));
       #endif
+        float cavity = 0.0;                    // creux du relief, sert d'occlusion
       #ifdef HB_BUMP
         float e = 0.42;
         vec3 bp = vWorld * uBumpScale;
@@ -126,6 +162,7 @@ export function tissue(o = {}) {
                          hbFbm2(bp + vec3(0.0,e,0.0)) - b0,
                          hbFbm2(bp + vec3(0.0,0.0,e)) - b0);
         N = normalize(N - grad * uBumpAmp * lod);
+        cavity = (1.0 - smoothstep(-0.7, 0.45, b0)) * lod;
       #endif
 
         float ndv = clamp(dot(N, V), 0.0, 1.0);
@@ -144,17 +181,21 @@ export function tissue(o = {}) {
           base *= 1.0 - uCrack * (1.0 - smoothstep(0.0, cw, cr)) * (0.35 + 0.65 * lod);
         }
 
-        vec3 col = base * (uAmbient + (1.0 - uAmbient) * ndv) * atten;
-        if (uKeyInt > 0.0){
-          float kd = clamp(dot(N, uKeyDir), 0.0, 1.0);
-          vec3 half_ = normalize(uKeyDir + V);
-          col += base * uKeyColor * kd * uKeyInt;
-          col += uKeyColor * pow(clamp(dot(N, half_), 0.0, 1.0), uShiny * 1.6) * uWet * uKeyInt * 1.4;
-        }
+        // occlusion : les plis profonds et les creux du grain reçoivent moins
+        float ao = 1.0 - uAO * max(cavity, 1.0 - smoothstep(-1.0, 0.5, vN));
+
+        // lumières de l'escale (indépendantes de la sonde) …
+        vec3 col = hbRig(base, N, V, ao, uWrap, uShiny * 1.5, uWet);
+        // … puis la lampe frontale que la sonde porte avec elle
+        col += base * (uAmbient + (1.0 - uAmbient) * ndv) * atten * ao;
+
         float fres = pow(max(1.0 - ndv, 0.0), 3.2);
         col += uHot * fres * uRim * (0.3 + 0.7 * atten);
         col += vec3(1.0) * pow(ndv, uShiny) * uWet * atten * mix(0.2, 1.0, lod);
         col += uEmissive * (0.7 + 0.6 * uPulse);
+      #ifdef HB_WAVE
+        col += uHot * vWave * uWaveGlow;
+      #endif
         col = hbSaturate(col, uVivid);
         col = hbFog(col, dist);
         gl_FragColor = vec4(col, uAlpha);
@@ -324,14 +365,15 @@ export function flowPoints(channel, o = {}) {
       uSoft:   { value: o.soft ?? 1.6 },
       uInt:    { value: o.intensity ?? 1.0 },
       uMaxPx:  { value: o.maxPx ?? 44 },
+      uMinPx:  { value: o.minPx ?? 7 },
       uNear:   { value: o.near ?? 22 },
       uPulseAmp: { value: o.pulseAmp ?? 0.4 },
     })),
     vertexShader: /* glsl */`
       ${CURVE}
       attribute float aU, aRad, aAng, aSize, aSeed;
-      uniform float uTime, uPulse, uZ0, uZ1, uRadius, uSpeed, uSwirl, uSize, uPx, uPulseAmp, uMaxPx;
-      varying float vFade; varying float vSeed; varying float vDist;
+      uniform float uTime, uPulse, uZ0, uZ1, uRadius, uSpeed, uSwirl, uSize, uPx, uPulseAmp, uMaxPx, uMinPx;
+      varying float vFade; varying float vSeed; varying float vDist; varying float vEnergy;
       void main(){
         float sp = uSpeed * (0.6 + 0.8 * aSeed) * (1.0 + uPulse * uPulseAmp);
         float u = fract(aU + uTime * sp);
@@ -344,13 +386,17 @@ export function flowPoints(channel, o = {}) {
         vDist = -mv.z;
         vFade = smoothstep(0.0, 0.05, u) * (1.0 - smoothstep(0.93, 1.0, u));
         vSeed = aSeed;
-        gl_PointSize = min(uSize * aSize * uPx / max(vDist, 1.0), uMaxPx);
+        float want = uSize * aSize * uPx / max(vDist, 1.0);
+        float ps = clamp(want, uMinPx, uMaxPx);
+        gl_PointSize = ps;
+        float k = want / max(ps, 1e-3);
+        vEnergy = min(k * k, 1.0);
         gl_Position = projectionMatrix * mv;
       }`,
     fragmentShader: /* glsl */`
       ${UTIL}
       uniform vec3 uColorA, uColorB; uniform float uSoft, uInt, uFogDensity, uVivid, uNear;
-      varying float vFade; varying float vSeed; varying float vDist;
+      varying float vFade; varying float vSeed; varying float vDist; varying float vEnergy;
       void main(){
         vec2 d = gl_PointCoord - 0.5;
         float r2 = dot(d, d);
@@ -361,7 +407,7 @@ export function flowPoints(channel, o = {}) {
         col = hbSaturate(col, uVivid);
         float f = exp(-uFogDensity * uFogDensity * vDist * vDist * 0.8);
         f *= smoothstep(uNear * 0.22, uNear, vDist);
-        gl_FragColor = vec4(col, a * vFade * uInt * f);
+        gl_FragColor = vec4(col, a * vFade * uInt * f * vEnergy);
       }`,
   });
 }
@@ -404,6 +450,7 @@ export function flowCells(channel, o = {}) {
       uAmbient:{ value: o.ambient ?? 0.25 },
       uClear:  { value: o.clear ?? 16 },
       uPulseAmp: { value: o.pulseAmp ?? 0.5 },
+      ...lit(o),
     })),
     vertexShader: /* glsl */`
       ${CURVE}${ROT}
@@ -436,7 +483,7 @@ export function flowCells(channel, o = {}) {
         gl_Position = projectionMatrix * viewMatrix * wp;
       }`,
     fragmentShader: /* glsl */`
-      ${UTIL}${FOG}
+      ${UTIL}${FOG}${LIGHT}
       uniform vec3 uDeep, uMid, uHot;
       uniform float uFall, uRim, uWet, uAmbient, uVivid;
       varying vec3 vWorld; varying vec3 vNrm; varying float vSeed; varying float vFade;
@@ -448,10 +495,11 @@ export function flowCells(channel, o = {}) {
         float ndv = clamp(dot(N, V), 0.0, 1.0);
         float atten = 1.0 / (1.0 + uFall * dist * dist);
         vec3 base = mix(uDeep, uMid, 0.35 + 0.65 * vSeed);
-        vec3 col = base * (uAmbient + (1.0 - uAmbient) * ndv) * atten;
+        vec3 col = hbRig(base, N, V, 1.0, 0.55, 26.0, uWet);
+        col += base * (uAmbient + (1.0 - uAmbient) * ndv) * atten;
         float fres = pow(max(1.0 - ndv, 0.0), 2.6);
         col += uHot * fres * uRim * atten;
-        col += vec3(1.0) * pow(ndv, 30.0) * uWet * atten;
+        col += vec3(1.0) * pow(ndv, 30.0) * uWet * atten * 0.45;
         col = hbSaturate(col, uVivid);
         col = hbFog(col, dist);
         col = mix(uFogColor, col, vFade);
@@ -479,6 +527,8 @@ export function driftCells(o = {}) {
       uEmissive: { value: new THREE.Color(o.emissive ?? 0x000000) },
       uAlpha: { value: o.alpha ?? 1.0 },
       uClear: { value: o.clear ?? 26 },
+      uWrap:  { value: o.wrap ?? 0.5 },
+      ...lit(o),
     }),
     vertexShader: /* glsl */`
       ${NOISE}${ROT}
@@ -499,9 +549,9 @@ export function driftCells(o = {}) {
         gl_Position = projectionMatrix * viewMatrix * wp;
       }`,
     fragmentShader: /* glsl */`
-      ${UTIL}${FOG}
+      ${UTIL}${FOG}${LIGHT}
       uniform vec3 uDeep, uMid, uHot, uEmissive;
-      uniform float uFall, uRim, uWet, uAmbient, uVivid, uAlpha, uPulse;
+      uniform float uFall, uRim, uWet, uAmbient, uVivid, uAlpha, uPulse, uWrap;
       varying vec3 vWorld; varying vec3 vNrm; varying float vSeed;
       void main(){
         vec3 V = cameraPosition - vWorld;
@@ -511,9 +561,12 @@ export function driftCells(o = {}) {
         float ndv = clamp(dot(N, V), 0.0, 1.0);
         float atten = 1.0 / (1.0 + uFall * dist * dist);
         vec3 base = mix(uDeep, uMid, 0.3 + 0.7 * vSeed);
-        vec3 col = base * (uAmbient + (1.0 - uAmbient) * ndv) * atten;
+        // spéculaire large : sur ces petits volumes facettés, un lobe serré
+        // allumait une facette entière d'un blanc franc — l'effet « caillou ».
+        vec3 col = hbRig(base, N, V, 1.0, uWrap, 12.0, uWet * 0.7);
+        col += base * (uAmbient + (1.0 - uAmbient) * ndv) * atten;
         col += uHot * pow(max(1.0 - ndv, 0.0), 2.4) * uRim * atten;
-        col += vec3(1.0) * pow(ndv, 26.0) * uWet * atten;
+        col += vec3(1.0) * pow(ndv, 8.0) * uWet * atten * 0.35;
         col += uEmissive * (0.7 + 0.5 * uPulse);
         col = hbSaturate(col, uVivid);
         col = hbFog(col, dist);
@@ -543,12 +596,15 @@ export function stalkField(o = {}) {
       uGlowTip:{ value: o.tipGlow ?? 0.4 },
       uAlpha:  { value: o.alpha ?? 1.0 },
       uPulseAmp: { value: o.pulseAmp ?? 0.0 },
+      uRootAO: { value: o.rootAO ?? 0.30 },
+      uWrap:   { value: o.wrap ?? 0.28 },
+      ...lit(o),
     }),
     vertexShader: /* glsl */`
       ${NOISE}
       attribute vec3 aPos; attribute vec3 aDir; attribute vec2 aScale; attribute float aSeed;
       uniform float uTime, uSway, uRate, uPulse, uPulseAmp;
-      varying vec3 vWorld; varying vec3 vNrm; varying float vY; varying float vSeed;
+      varying vec3 vWorld; varying vec3 vNrm; varying float vY; varying float vSeed; varying float vW;
       mat3 hbAlign(vec3 d){
         vec3 up = abs(d.y) > 0.985 ? vec3(1.0, 0.0, 0.0) : vec3(0.0, 1.0, 0.0);
         vec3 x = normalize(cross(up, d));
@@ -557,7 +613,7 @@ export function stalkField(o = {}) {
       }
       void main(){
         float y = clamp(position.y, 0.0, 1.0);
-        vY = y; vSeed = aSeed;
+        vY = y; vSeed = aSeed; vW = aScale.x;
         vec3 lp = vec3(position.x * aScale.x, y * aScale.y, position.z * aScale.x);
         float ph = aSeed * 41.0 + dot(aPos, vec3(0.05, 0.037, 0.061));
         float w = pow(y, 1.7) * uSway * aScale.y * (1.0 + uPulse * uPulseAmp);
@@ -567,14 +623,17 @@ export function stalkField(o = {}) {
         vec3 wp3 = aPos + R * lp;
         vec4 wp = modelMatrix * vec4(wp3, 1.0);
         vWorld = wp.xyz;
-        vNrm = normalize(mat3(modelMatrix) * (R * normal));
+        // la tige est étirée en longueur : sans l'inverse de cette échelle,
+        // la normale reste celle du cylindre d'origine et la tige paraît plate.
+        vec3 nl = normalize(vec3(normal.x / aScale.x, normal.y / aScale.y, normal.z / aScale.x));
+        vNrm = normalize(mat3(modelMatrix) * (R * nl));
         gl_Position = projectionMatrix * viewMatrix * wp;
       }`,
     fragmentShader: /* glsl */`
-      ${UTIL}${FOG}
+      ${UTIL}${FOG}${LIGHT}
       uniform vec3 uRoot, uTip, uHot;
-      uniform float uRim, uWet, uAmbient, uFall, uGlowTip, uAlpha, uVivid;
-      varying vec3 vWorld; varying vec3 vNrm; varying float vY; varying float vSeed;
+      uniform float uRim, uWet, uAmbient, uFall, uGlowTip, uAlpha, uVivid, uRootAO, uWrap;
+      varying vec3 vWorld; varying vec3 vNrm; varying float vY; varying float vSeed; varying float vW;
       void main(){
         vec3 V = cameraPosition - vWorld;
         float dist = length(V);
@@ -583,9 +642,16 @@ export function stalkField(o = {}) {
         float ndv = clamp(dot(N, V), 0.0, 1.0);
         float atten = 1.0 / (1.0 + uFall * dist * dist);
         vec3 base = mix(uRoot, uTip, pow(vY, 0.8) * (0.75 + 0.5 * vSeed));
-        vec3 col = base * (uAmbient + (1.0 - uAmbient) * ndv) * atten;
-        col += uHot * pow(max(1.0 - ndv, 0.0), 2.6) * uRim * atten;
-        col += vec3(1.0) * pow(ndv, 24.0) * uWet * atten;
+        // dans une forêt dense, le pied des tiges ne voit presque pas le jour
+        float ao = mix(uRootAO, 1.0, smoothstep(0.0, 0.42, vY));
+        // Une tige plus fine qu'un pixel ne peut plus porter de reflet : il ne
+        // reste qu'un éclat isolé, que la floraison étale ensuite en carré.
+        float texel = length(fwidth(vWorld));
+        float lod = 1.0 - smoothstep(vW * 0.55, vW * 2.0, texel);
+        vec3 col = hbRig(base, N, V, ao, uWrap, 18.0, uWet * lod);
+        col += base * (uAmbient + (1.0 - uAmbient) * ndv) * atten * ao;
+        col += uHot * pow(max(1.0 - ndv, 0.0), 2.6) * uRim * atten * mix(0.35, 1.0, lod);
+        col += vec3(1.0) * pow(ndv, 24.0) * uWet * atten * 0.45 * lod;
         col += uTip * pow(vY, 6.0) * uGlowTip;
         col = hbSaturate(col, uVivid);
         col = hbFog(col, dist);
@@ -594,17 +660,20 @@ export function stalkField(o = {}) {
   });
 }
 
-/* Fuseau normalisé (base en y=0, pointe en y=1) pour stalkField. */
-export function spindle(radial = 7, rings = 6) {
-  const geo = new THREE.CylinderGeometry(0.26, 0.44, 1, radial, rings, false);
-  geo.translate(0, 0.5, 0);
-  const p = geo.attributes.position;
-  for (let i = 0; i < p.count; i++) {
-    const y = p.getY(i);
-    const k = Math.sin(Math.min(1, y) * Math.PI * 0.62);      // profil arrondi
-    p.setX(i, p.getX(i) * (1.02 - 0.42 * k * k));
-    p.setZ(i, p.getZ(i) * (1.02 - 0.42 * k * k));
-  }
+/**
+ * Fuseau normalisé (base en y=0, pointe en y=1) pour stalkField.
+ * Profil de révolution : pied évasé qui se fond dans la paroi, fût légèrement
+ * renflé, calotte hémisphérique au sommet. L'ancienne version était un cylindre
+ * à bouts plats — de loin, une lamelle de carton à bout carré.
+ */
+export function spindle(radial = 7) {
+  // Rayon / hauteur. Les anneaux sont resserrés vers le sommet : c'est là que
+  // la calotte se courbe, et une répartition régulière la réduirait à un cône.
+  const prof = [
+    [0.62, 0.00], [0.38, 0.09], [0.34, 0.30], [0.36, 0.58],
+    [0.35, 0.80], [0.31, 0.90], [0.21, 0.966], [0.008, 1.0],
+  ];
+  const geo = new THREE.LatheGeometry(prof.map(([r, y]) => new THREE.Vector2(r, y)), radial);
   geo.computeVertexNormals();
   return geo;
 }
@@ -623,6 +692,7 @@ export function motes(o = {}) {
       uSoft:   { value: o.soft ?? 1.5 },
       uTwinkle:{ value: o.twinkle ?? 0.5 },
       uMaxPx:  { value: o.maxPx ?? 40 },
+      uMinPx:  { value: o.minPx ?? 7 },
       uNear:   { value: o.near ?? 26 },
       uRise:   { value: o.rise ?? 0.0 },
       uSpanY:  { value: o.spanY ?? 1000.0 },
@@ -630,8 +700,8 @@ export function motes(o = {}) {
     vertexShader: /* glsl */`
       ${NOISE}
       attribute float aSize, aSeed;
-      uniform float uTime, uSize, uDrift, uRate, uPx, uRise, uSpanY, uMaxPx;
-      varying float vSeed; varying float vDist;
+      uniform float uTime, uSize, uDrift, uRate, uPx, uRise, uSpanY, uMaxPx, uMinPx;
+      varying float vSeed; varying float vDist; varying float vEnergy;
       void main(){
         vec3 base = position;
         if (uRise != 0.0){
@@ -642,13 +712,20 @@ export function motes(o = {}) {
         vec4 mv = modelViewMatrix * vec4(base + off, 1.0);
         vDist = -mv.z;
         vSeed = aSeed;
-        gl_PointSize = min(uSize * aSize * uPx / max(vDist, 1.0), uMaxPx);
+        // Un point loin devient minuscule et éclatant : la floraison n'a plus
+        // qu'un texel à étaler et le rend comme un carré. On lui impose donc
+        // une taille plancher, en diluant sa lumière sur la surface gagnée.
+        float want = uSize * aSize * uPx / max(vDist, 1.0);
+        float ps = clamp(want, uMinPx, uMaxPx);
+        gl_PointSize = ps;
+        float k = want / max(ps, 1e-3);
+        vEnergy = min(k * k, 1.0);
         gl_Position = projectionMatrix * mv;
       }`,
     fragmentShader: /* glsl */`
       ${UTIL}
       uniform vec3 uColorA, uColorB; uniform float uInt, uSoft, uTwinkle, uTime, uFogDensity, uVivid, uNear;
-      varying float vSeed; varying float vDist;
+      varying float vSeed; varying float vDist; varying float vEnergy;
       void main(){
         vec2 d = gl_PointCoord - 0.5;
         float r2 = dot(d, d);
@@ -658,7 +735,47 @@ export function motes(o = {}) {
         vec3 col = hbSaturate(mix(uColorA, uColorB, vSeed), uVivid);
         float f = exp(-uFogDensity * uFogDensity * vDist * vDist * 0.6);
         f *= smoothstep(uNear * 0.25, uNear, vDist);
-        gl_FragColor = vec4(col, a * uInt * tw * f);
+        gl_FragColor = vec4(col, a * uInt * tw * f * vEnergy);
+      }`,
+  });
+}
+
+/* ═══════════ ÉCHANTILLONS — pastilles à récolter, visibles de loin ═══════════ */
+export function orbs(o = {}) {
+  return new THREE.ShaderMaterial({
+    transparent: true, depthWrite: false, depthTest: o.depthTest ?? true,
+    blending: THREE.AdditiveBlending,
+    uniforms: g({
+      uColor: { value: new THREE.Color(o.color ?? 0x5ff0d0) },
+      uSize:  { value: o.size ?? 26 },
+      uInt:   { value: o.intensity ?? 1.0 },
+      uMaxPx: { value: o.maxPx ?? 150 },
+      uMinPx: { value: o.minPx ?? 16 },
+    }),
+    vertexShader: /* glsl */`
+      attribute float aSeed; attribute float aAlive;
+      uniform float uTime, uSize, uPx, uMaxPx, uMinPx;
+      varying float vSeed; varying float vAlive;
+      void main(){
+        vec4 mv = modelViewMatrix * vec4(position, 1.0);
+        float dist = -mv.z;
+        vSeed = aSeed; vAlive = aAlive;
+        float puls = 1.0 + 0.16 * sin(uTime * 2.4 + aSeed * 6.283);
+        gl_PointSize = clamp(uSize * puls * uPx / max(dist, 1.0), uMinPx, uMaxPx) * step(0.5, aAlive);
+        gl_Position = projectionMatrix * mv;
+      }`,
+    fragmentShader: /* glsl */`
+      uniform vec3 uColor; uniform float uInt, uTime, uVivid;
+      varying float vSeed; varying float vAlive;
+      void main(){
+        if (vAlive < 0.5) discard;
+        vec2 d = gl_PointCoord - 0.5;
+        float r = length(d);
+        if (r > 0.5) discard;
+        float core = smoothstep(0.15, 0.0, r);
+        float ring = smoothstep(0.055, 0.0, abs(r - 0.33 - 0.035 * sin(uTime * 3.0 + vSeed * 6.283)));
+        float halo = smoothstep(0.5, 0.08, r) * 0.26;
+        gl_FragColor = vec4(uColor, clamp(core + ring * 0.8 + halo, 0.0, 1.0) * uInt);
       }`,
   });
 }

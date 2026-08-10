@@ -1,9 +1,15 @@
 /**
  * Contenu du voyage. Chaque escale existe en deux écritures :
  *   e — version enfant  (dès 7 ans : images concrètes, comparaisons, tutoiement)
- *   a — version adulte  (terminologie exacte, chiffres, physiologie)
- * Les positions 3D des points d'intérêt vivent dans src/world/*.js,
- * appariées par leur clé.
+ *   a — version adulte
+ *
+ * Règle du registre adulte : aucun terme technique qui ne soit traduit dans la
+ * phrase même, une image concrète en ouverture, et systématiquement ce que ça
+ * change pour la personne qui lit — l'essoufflement, la gueule de bois, la
+ * crampe, l'urine foncée. Ce n'est pas un cours ; c'est une visite.
+ *
+ * Les positions 3D des points d'intérêt vivent dans src/world/*.js, appariées
+ * par leur clé. Les missions sont dans content/missions.js.
  */
 
 export const STATIONS = [
@@ -11,12 +17,11 @@ export const STATIONS = [
   {
     id: 'peau', accent: '#ffb38a', map: [88, 58],
     name: { e: 'La peau', a: 'La peau' },
-    sub: { e: 'Le sas d’entrée', a: 'Épiderme · couche cornée' },
+    sub: { e: 'Le sas d’entrée', a: 'La frontière du corps' },
     fog: { color: 0x9a6144, density: 0.0011 },
-    ambience: { base: 48, cutoff: 260, drone: 0.13, noise: 0.16, hiss: 620 },
     intro: {
       e: 'Bienvenue à bord. On rétrécit… et on se pose sur ta <b>peau</b>. Vue d’ici, elle ressemble à un désert de dunes, avec des poils grands comme des arbres.',
-      a: 'Début du voyage : la <b>surface cutanée</b>, à l’échelle du micron. Ce paysage de plaques est la couche cornée ; le tunnel devant nous est un pore.',
+      a: 'Nous voici posés sur votre peau, agrandie environ mille fois. Ces dalles craquelées sont des cellules mortes. Le puits devant nous est un pore.',
     },
     card: {
       e: {
@@ -30,38 +35,42 @@ export const STATIONS = [
                 ['5 mm', 'l’épaisseur sous le talon, contre 0,5 mm sur la paupière']],
       },
       a: {
-        kicker: 'Escale 1', title: 'La frontière du corps',
-        html: `<p>Avec ses <b>1,5 à 2 m²</b> et près de 4 kg avec l’hypoderme, la peau est le plus vaste organe de l’économie corporelle. Elle est d’abord une <em>barrière</em> : thermique, mécanique, immunitaire, hydrique.</p>
-               <p>Ce relief est le <b>stratum corneum</b> : une quinzaine de couches de cornéocytes anucléés, gorgés de kératine, cimentés par un mortier lipidique (céramides, cholestérol, acides gras libres). Le modèle classique parle de « briques et mortier ».</p>
-               <p>Sous eux, la couche basale produit sans relâche de nouveaux kératinocytes qui migrent vers la surface en se kératinisant. Le renouvellement complet de l’épiderme prend environ <b>28 jours</b>.</p>`,
-        stats: [['1,5–2 m²', 'surface cutanée totale'],
-                ['≈ 28 j', 'temps de renouvellement épidermique'],
-                ['2–5 M', 'glandes sudoripares'],
-                ['0,05–5 mm', 'épaisseur de l’épiderme selon la région']],
+        kicker: 'Escale 1', title: 'Vous êtes mort en surface',
+        html: `<p>Ce que vous touchez quand vous vous touchez le bras, c’est du tissu mort. La quinzaine de couches les plus externes sont des cellules vidées de tout, aplaties, remplies d’une protéine dure et collées entre elles par un ciment gras. Des briques et du mortier — le modèle porte ce nom.</p>
+               <p>C’est ce mur de deux centièmes de millimètre qui vous garde étanche. Sans lui, vous vous videriez de votre eau en quelques heures. C’est aussi lui qui décide si une crème pénètre ou reste dessus : la plupart restent dessus.</p>
+               <p>Dessous, une couche de cellules fabrique en continu des remplaçantes qui montent vers la surface en durcissant. Le trajet complet dure <b>quatre semaines</b>. Votre peau d’aujourd’hui n’existait pas le mois dernier.</p>
+               <p>Et si vos doigts se fripent dans le bain, ce n’est pas parce qu’ils gonflent : c’est le système nerveux qui resserre les vaisseaux sous la pulpe. Un réflexe, probablement pour mieux agripper le mouillé.</p>`,
+        stats: [['1,5–2 m²', 'la surface totale, environ une porte'],
+                ['4 semaines', 'pour renouveler entièrement l’épiderme'],
+                ['2 à 5 millions', 'de glandes à sueur'],
+                ['0,05 à 5 mm', 'de la paupière à la plante du pied']],
       },
     },
     spots: {
       poil: {
-        label: { e: 'Un poil', a: 'Follicule pileux' },
+        label: { e: 'Un poil', a: 'Un poil' },
         e: { title: 'L’arbre de la peau', html: `<p>Un poil, c’est de la <b>kératine</b> — la même matière que tes ongles. Il pousse depuis une petite poche enfoncée dans la peau, et le muscle qui l’accompagne le redresse quand tu as froid : c’est la <em>chair de poule</em>.</p>` },
-        a: { title: 'Follicule pileux', html: `<p>Invagination épidermique abritant la matrice germinative. Le <b>muscle arrecteur</b> assure la piloérection ; la <b>glande sébacée</b> annexée y déverse le sébum qui lubrifie tige et surface. Le follicule est aussi une <em>niche de cellules souches</em> mobilisée lors de la cicatrisation.</p>` },
+        a: { title: 'Un poil', html: `<p>Un poil est une tige morte poussée par une poche vivante enfoncée dans la peau. Un minuscule muscle y est attaché : quand il se contracte, le poil se dresse et la peau se hérisse. C’est la chair de poule — un réflexe qui gonflait la fourrure de nos ancêtres et qui, sur nous, ne sert plus à rien.</p>
+                                        <p>La poche produit aussi le <b>sébum</b>, le gras qui rend les cheveux gras au bout de trois jours et qui, en excès, bouche le pore : c’est le point noir.</p>` },
       },
       pore: {
-        label: { e: 'Le tunnel', a: 'Ostium sudoripare' },
+        label: { e: 'Le tunnel', a: 'Un pore' },
         e: { title: 'La porte d’entrée', html: `<p>Ce puits est un <b>pore</b> : le trou par lequel sort la sueur. C’est notre entrée. Quand tu as chaud, des millions de petites glandes envoient de l’eau ici pour te refroidir.</p>` },
-        a: { title: 'Le pore, notre voie d’accès', html: `<p>Débouché d’une <b>glande sudoripare eccrine</b>. La sudation est le principal levier de thermolyse : jusqu’à <em>1 à 2 litres par heure</em> en effort intense. Le film hydrolipidique qui en résulte maintient un pH acide (4,7–5,7) hostile aux pathogènes.</p>` },
+        a: { title: 'Un pore', html: `<p>La sortie d’une glande à sueur. C’est votre principal moyen de ne pas surchauffer : en évaporant l’eau, la peau perd de la chaleur. À l’effort et par forte chaleur, on peut en évacuer <b>un à deux litres par heure</b> — d’où la déshydratation express quand on ne boit pas.</p>
+                                     <p>Le mélange de sueur et de gras qui reste en surface est légèrement acide, ce qui gêne la plupart des bactéries. Se laver trop agressivement l’élimine, et la peau tire.</p>` },
       },
       corne: {
-        label: { e: 'Les dalles', a: 'Cornéocytes' },
+        label: { e: 'Les dalles', a: 'La couche morte' },
         e: { title: 'Des tuiles vivantes', html: `<p>Chaque « dalle » est une cellule <b>morte</b> et aplatie. Elle a fait tout un voyage : née tout en bas, elle a mis un mois pour monter jusqu’ici. Puis elle s’envole en poussière.</p>` },
-        a: { title: 'Cornéocytes', html: `<p>Kératinocytes terminaux, anucléés, remplis de filaments de kératine et entourés d’une enveloppe cornée réticulée. Leur cohésion repose sur les <b>cornéodesmosomes</b>, dégradés progressivement par des protéases : c’est la <em>desquamation</em>.</p>` },
+        a: { title: 'La couche morte', html: `<p>Chaque dalle est une cellule qui a passé un mois à monter et qui, arrivée ici, s’est vidée de son noyau pour ne garder que de la kératine. Elle tiendra encore une quinzaine de jours, puis se détachera.</p>
+                                              <p>Vous en perdez environ <b>40 000 par minute</b>. C’est l’essentiel de la poussière de votre logement. Et c’est ce que retire un gommage : rien de vivant, juste ce qui allait tomber.</p>` },
       },
     },
     quiz: {
       e: { q: 'En combien de temps ta peau se renouvelle-t-elle entièrement ?', opts: ['En un mois environ', 'En un an', 'Jamais : c’est la même toute la vie'], ok: 0,
            fb: 'Oui ! <b>Environ 28 jours.</b> Tu portes une peau plus jeune que ton dernier anniversaire.' },
-      a: { q: 'Quelle structure assure l’essentiel de la fonction barrière cutanée ?', opts: ['Le stratum corneum', 'Le derme papillaire', 'L’hypoderme'], ok: 0,
-           fb: 'Exact. Le <b>stratum corneum</b> et son ciment lipidique intercornéocytaire limitent la perte insensible en eau et l’entrée des xénobiotiques.' },
+      a: { q: 'Pourquoi vos doigts se fripent-ils dans le bain ?', opts: ['Les vaisseaux se resserrent sous la peau', 'La peau absorbe de l’eau et gonfle', 'Le savon dissout le gras de surface'], ok: 0,
+           fb: 'Ce n’est pas un gonflement mais un <b>réflexe nerveux</b> : les vaisseaux se contractent et la pulpe se plisse. On soupçonne un meilleur agrippement sur le mouillé — les doigts anesthésiés ne se frippent pas.' },
     },
   },
 
@@ -69,12 +78,11 @@ export const STATIONS = [
   {
     id: 'sang', accent: '#ff5a6e', map: [76, 118],
     name: { e: 'La rivière rouge', a: 'L’artère' },
-    sub: { e: 'Dans le sang', a: 'Lumière artérielle · endothélium' },
+    sub: { e: 'Dans le sang', a: 'Le fleuve sous pression' },
     fog: { color: 0x2a0409, density: 0.0105 },
-    ambience: { base: 42, cutoff: 220, drone: 0.2, noise: 0.3, hiss: 340 },
     intro: {
       e: 'Nous voilà dans un <b>vaisseau sanguin</b> — un tunnel rouge où tout file à toute vitesse. Ces galettes rouges autour de nous transportent l’oxygène.',
-      a: 'Nous naviguons à contre-courant dans une <b>artère</b>. Autour de nous : hématies, leucocytes et plaquettes, poussés par l’onde de pression cardiaque.',
+      a: 'Nous remontons une <b>artère</b> à contre-courant. Ces disques rouges portent l’oxygène. Le grondement que vous entendez vient du cœur, en amont : plus on s’en approche, plus il domine.',
     },
     card: {
       e: {
@@ -88,43 +96,49 @@ export const STATIONS = [
                 ['120 jours', 'la vie d’un globule rouge']],
       },
       a: {
-        kicker: 'Escale 2', title: 'Le tissu liquide',
-        html: `<p>Le sang est un <b>tissu conjonctif liquide</b> : 55 % de plasma, 45 % d’éléments figurés. Chez l’adulte, la volémie avoisine <b>5 litres</b>, soit 7 à 8 % de la masse corporelle.</p>
-               <p>La paroi qui nous entoure est une artère : intima (endothélium), média riche en fibres musculaires lisses et en élastine, adventice. Son <em>élasticité</em> transforme le débit pulsé du ventricule en flux quasi continu à l’étage capillaire — c’est l’effet Windkessel.</p>
-               <p>Dans l’aorte, le sang file à environ <b>40 cm/s</b> en systole ; dans un capillaire, il ralentit à moins de 1 mm/s — le temps nécessaire aux échanges.</p>`,
-        stats: [['≈ 5 L', 'volémie de l’adulte'],
-                ['4,5–5,5 M/mm³', 'concentration en hématies'],
-                ['100 000 km', 'longueur cumulée du réseau vasculaire'],
-                ['≈ 40 cm/s', 'vitesse systolique dans l’aorte']],
+        kicker: 'Escale 2', title: 'Un tuyau qui rend le débit régulier',
+        html: `<p>Cinq litres. C’est tout ce que vous avez, et ça fait le tour complet du corps en une minute environ.</p>
+               <p>Le cœur ne pousse pas en continu : il envoie des coups. Si les artères étaient des tuyaux rigides, vos capillaires recevraient ces à-coups en pleine face et céderaient. Elles sont donc <b>élastiques</b> : elles se dilatent au coup, se rétractent entre deux, et restituent le sang pendant la pause. Le débit qui arrive aux tissus est presque continu.</p>
+               <p>Voilà ce que mesure un tensiomètre. Le premier chiffre, c’est la poussée. Le second, ce qui reste entre deux coups grâce à cette élasticité. Avec l’âge les artères durcissent, l’amortisseur fonctionne moins bien, et le premier chiffre monte.</p>
+               <p>Un détail d’échelle : dans l’aorte le sang file à <b>40 cm par seconde</b>, dans un capillaire à moins d’un millimètre par seconde. Ce ralentissement n’est pas un défaut — c’est le temps qu’il faut pour livrer.</p>`,
+        stats: [['≈ 5 litres', 'chez un adulte, soit 7 % du poids'],
+                ['5 millions', 'de globules rouges par millimètre cube'],
+                ['100 000 km', 'de vaisseaux bout à bout'],
+                ['40 cm/s', 'la vitesse dans l’aorte, au moment du coup']],
       },
     },
     spots: {
       hematie: {
-        label: { e: 'Globule rouge', a: 'Hématie' },
+        label: { e: 'Globule rouge', a: 'Globule rouge' },
         e: { title: 'Le camion à oxygène', html: `<p>Creux des deux côtés comme un coussin dégonflé, il se plie pour passer dans les tuyaux les plus étroits. Il ne vit que <b>4 mois</b>, puis il est recyclé. Ton corps en fabrique <em>2 millions par seconde</em>.</p>` },
-        a: { title: 'Hématie', html: `<p>Cellule anucléée biconcave de 7–8 µm, déformable jusqu’à franchir des capillaires de 3 µm. Chaque hématie renferme près de <b>270 millions de molécules d’hémoglobine</b>, chacune fixant jusqu’à quatre O₂. Durée de vie : <em>120 jours</em>, avant épuration splénique.</p>` },
+        a: { title: 'Globule rouge', html: `<p>Un disque creux des deux côtés, de sept millièmes de millimètre, si souple qu’il se plie en deux pour passer dans des vaisseaux plus étroits que lui.</p>
+                                            <p>Il a jeté son noyau pour faire de la place : c’est une cellule sans plan, incapable de se réparer. D’où sa durée de vie de <b>120 jours</b>. Chacun transporte 270 millions de molécules d’hémoglobine, la protéine qui fixe l’oxygène — et qui est rouge, ce qui explique la couleur.</p>
+                                            <p>Vous en fabriquez deux millions par seconde. Le fer sert justement à ça : sans fer, pas d’hémoglobine, et l’essoufflement au moindre escalier.</p>` },
       },
       leuco: {
-        label: { e: 'Globule blanc', a: 'Leucocyte' },
+        label: { e: 'Globule blanc', a: 'Globule blanc' },
         e: { title: 'Le garde du corps', html: `<p>Plus gros et plus rare, il patrouille. S’il repère un microbe, il le poursuit, l’avale et le digère. Certains gardent même <b>le souvenir</b> des intrus déjà rencontrés.</p>` },
-        a: { title: 'Leucocyte', html: `<p>4 000 à 10 000/mm³. Les polynucléaires neutrophiles assurent la phagocytose de première ligne ; les lymphocytes portent l’immunité adaptative et la <em>mémoire immunitaire</em>. Ils quittent la lumière vasculaire par <b>diapédèse</b>, en roulant puis en traversant l’endothélium.</p>` },
+        a: { title: 'Globule blanc', html: `<p>Mille fois moins nombreux que les rouges, et bien plus gros. Certains avalent et digèrent les bactéries sur place. D’autres gardent la <b>mémoire</b> de ce qu’ils ont rencontré : c’est exactement ce qu’exploite un vaccin.</p>
+                                            <p>Ils ne restent pas dans le sang. Le vaisseau n’est qu’une autoroute : arrivés en face d’un tissu enflammé, ils ralentissent, roulent le long de la paroi, puis se faufilent entre deux cellules pour sortir. Le pus, c’est eux — morts au travail.</p>` },
       },
       plaquette: {
-        label: { e: 'Plaquettes', a: 'Thrombocytes' },
+        label: { e: 'Plaquettes', a: 'Plaquettes' },
         e: { title: 'Le pansement de poche', html: `<p>Ces petits éclats se collent instantanément sur une déchirure et forment un bouchon. Sans eux, la moindre coupure ne s’arrêterait jamais.</p>` },
-        a: { title: 'Thrombocytes', html: `<p>Fragments cytoplasmiques de mégacaryocytes, 150 000–400 000/mm³. Adhésion au collagène sous-endothélial via le facteur von Willebrand, activation, agrégation : c’est l’<b>hémostase primaire</b>, relayée par la cascade de coagulation.</p>` },
+        a: { title: 'Plaquettes', html: `<p>Ce ne sont pas des cellules entières mais des éclats détachés de cellules géantes restées dans la moelle. Dès qu’une paroi est déchirée, elles s’y collent, changent de forme, s’agglutinent et bouchent le trou en quelques secondes. Un maillage de fibres vient ensuite consolider : c’est la croûte.</p>
+                                         <p>L’aspirine agit précisément là, en les rendant moins collantes. C’est pourquoi on saigne un peu plus longtemps sous aspirine — et pourquoi on en donne à faible dose après un infarctus.</p>` },
       },
       paroi: {
-        label: { e: 'La paroi', a: 'Endothélium' },
+        label: { e: 'La paroi', a: 'La paroi du vaisseau' },
         e: { title: 'Le tapis vivant', html: `<p>Le tunnel n’est pas un tuyau mort : sa surface est faite de cellules bien rangées, lisses comme du carrelage, pour que le sang glisse sans accrocher.</p>` },
-        a: { title: 'Endothélium', html: `<p>Monocouche de cellules jointives — près de <b>700 m²</b> à l’échelle de l’organisme. Loin d’être passif, il régule le tonus vasculaire (monoxyde d’azote, endothéline), l’hémostase et le passage des leucocytes. Sa <em>dysfonction</em> ouvre la voie à l’athérosclérose.</p>` },
+        a: { title: 'La paroi du vaisseau', html: `<p>La surface intérieure est un tapis d’une seule épaisseur de cellules, jointives comme du carrelage. Mises bout à bout dans un corps entier, elles couvriraient <b>700 m²</b>.</p>
+                                                   <p>Ce tapis n’est pas passif : il commande le diamètre du vaisseau, empêche le sang de coaguler contre lui et décide où les globules blancs ont le droit de sortir. Quand il s’abîme — tabac, sucre, tension —, du gras s’infiltre dessous et la plaque d’athérome commence. Tout l’infarctus part de là.</p>` },
       },
     },
     quiz: {
       e: { q: 'Combien de kilomètres de vaisseaux as-tu dans le corps ?', opts: ['100 000 km', '500 km', '12 km'], ok: 0,
            fb: 'Incroyable mais vrai : <b>100 000 km</b>, soit deux fois et demie le tour de la Terre.' },
-      a: { q: 'Combien de molécules d’O₂ une hémoglobine peut-elle fixer ?', opts: ['Quatre', 'Une', 'Vingt-sept'], ok: 0,
-           fb: 'Quatre : une par hème. La <b>coopérativité</b> entre sous-unités donne à la courbe de saturation sa forme sigmoïde.' },
+      a: { q: 'Pourquoi les artères sont-elles élastiques plutôt que rigides ?', opts: ['Pour lisser les à-coups du cœur', 'Pour accélérer le sang', 'Pour filtrer les grosses cellules'], ok: 0,
+           fb: 'Elles se gonflent au coup de pompe et se rétractent entre deux : les tissus reçoivent un débit presque continu. Quand elles <b>durcissent avec l’âge</b>, cet amortisseur fonctionne moins bien et la tension monte.' },
     },
   },
 
@@ -132,12 +146,11 @@ export const STATIONS = [
   {
     id: 'coeur', accent: '#e8384f', map: [50, 62],
     name: { e: 'Le cœur', a: 'Le cœur' },
-    sub: { e: 'La grande pompe', a: 'Ventricule gauche · valve mitrale' },
+    sub: { e: 'La grande pompe', a: 'La pompe qui commande tout' },
     fog: { color: 0x33050c, density: 0.0026 },
-    ambience: { base: 38, cutoff: 190, drone: 0.24, noise: 0.28, hiss: 240 },
     intro: {
       e: 'Attention, ça secoue ! Nous sommes <b>à l’intérieur du cœur</b>. Ces murs qui bougent sont des muscles, et la grande porte devant nous s’ouvre à chaque battement.',
-      a: 'Cavité <b>ventriculaire gauche</b>. Devant nous, l’appareil valvulaire mitral et ses cordages ; autour, le myocarde, épais de plus d’un centimètre.',
+      a: 'Nous sommes dans la <b>chambre gauche</b>, celle qui envoie le sang dans tout le corps. Le mur qui bouge autour de vous fait plus d’un centimètre de muscle. Devant, la grande valve d’entrée et ses cordes.',
     },
     card: {
       e: {
@@ -151,56 +164,60 @@ export const STATIONS = [
                 ['0 pause', 'depuis avant même ta naissance']],
       },
       a: {
-        kicker: 'Escale 3', title: 'Deux pompes en série',
-        html: `<p>Le cœur est un <b>double organe</b> : le cœur droit envoie le sang désaturé vers les poumons (petite circulation), le cœur gauche propulse le sang oxygéné vers l’organisme (grande circulation). Masse : <b>250 à 350 g</b>.</p>
-               <p>La contraction naît du <b>nœud sinusal</b>, pacemaker naturel logé dans l’oreillette droite, puis se propage par le nœud atrio-ventriculaire, le faisceau de His et le réseau de Purkinje — d’où la synchronisation quasi parfaite des parois.</p>
-               <p>Au repos, le débit cardiaque atteint <b>5 L/min</b> (70 mL × 70 bpm) ; à l’effort maximal, il peut être multiplié par cinq. Les valves, purement passives, sont ouvertes ou fermées par les seuls gradients de pression.</p>`,
-        stats: [['5 L/min', 'débit cardiaque au repos'],
-                ['≈ 70 mL', 'volume d’éjection systolique'],
-                ['0,8 s', 'durée d’un cycle à 75 bpm'],
-                ['≈ 2 milliards', 'battements sur une vie']],
+        kicker: 'Escale 3', title: 'Deux pompes collées dos à dos',
+        html: `<p>On dit « le cœur » mais il y en a deux, accolés. Celle de droite envoie le sang aux poumons, à côté : court trajet, faible pression, mur mince. Celle de gauche — vous y êtes — l’envoie dans tout le reste, jusqu’aux orteils. D’où un mur trois fois plus épais.</p>
+               <p>Le rythme ne vient pas du cerveau. Un petit groupe de cellules dans le coin supérieur droit se dépolarise tout seul, à intervalle régulier, et impose le tempo. Un cœur retiré du corps continue de battre tant qu’on le nourrit — c’est ce qui rend la greffe possible.</p>
+               <p>Le <b>boum-boum</b> n’est pas le muscle : ce sont les valves qui claquent en se fermant. Un souffle au cœur, c’est une de ces valves qui ferme mal et laisse fuir un peu de sang à contresens.</p>
+               <p>Le muscle cardiaque est bourré de mitochondries et n’a aucune réserve. Bouchez l’artère qui le nourrit, et la zone privée meurt en une trentaine de minutes, définitivement. C’est l’infarctus, et c’est pour ça que chaque minute compte.</p>`,
+        stats: [['5 litres/min', 'au repos — jusqu’à 25 à l’effort maximal'],
+                ['70 mL', 'éjectés à chaque battement, un demi-verre'],
+                ['0,8 seconde', 'la durée d’un cycle complet'],
+                ['2 milliards', 'de battements sur une vie']],
       },
     },
     spots: {
       valve: {
-        label: { e: 'La grande porte', a: 'Valve mitrale' },
+        label: { e: 'La grande porte', a: 'La valve d’entrée' },
         e: { title: 'Une porte à sens unique', html: `<p>Elle s’ouvre pour laisser passer le sang, puis se referme d’un coup pour l’empêcher de revenir en arrière. C’est le premier <b>« boum »</b> du battement.</p>` },
-        a: { title: 'Valve mitrale', html: `<p>Valve atrio-ventriculaire gauche, à <b>deux feuillets</b>. Sa fermeture au début de la systole engendre le premier bruit (B1). Les cordages tendineux, tendus par les piliers, l’empêchent de se retourner dans l’oreillette : c’est l’<em>appareil sous-valvulaire</em>.</p>` },
+        a: { title: 'La valve d’entrée', html: `<p>Deux volets souples qui laissent entrer le sang, puis se plaquent l’un contre l’autre quand la chambre se contracte. Ce claquement est le premier <b>« boum »</b> que l’on entend au stéthoscope.</p>
+                                                <p>Aucun mécanisme, aucun ressort : ce sont les différences de pression qui les ouvrent et les ferment. Quand ces volets s’épaississent ou se distendent avec l’âge, ils ferment mal, le sang reflue, et le cœur doit travailler davantage pour compenser.</p>` },
       },
       myocarde: {
-        label: { e: 'Le muscle', a: 'Myocarde' },
+        label: { e: 'Le muscle', a: 'Le muscle cardiaque' },
         e: { title: 'Un muscle infatigable', html: `<p>Ce mur épais est un muscle très particulier : il se contracte <b>tout seul</b>, sans que tu y penses, et il ne se fatigue jamais. Il a même ses propres tuyaux pour se nourrir.</p>` },
-        a: { title: 'Myocarde', html: `<p>Muscle strié à commande involontaire. Ses cellules sont couplées électriquement par des <b>disques intercalaires</b> (jonctions communicantes) : le ventricule se comporte comme un syncytium fonctionnel. Sa densité en mitochondries dépasse 30 % du volume cellulaire — d’où sa <em>dépendance absolue</em> à la perfusion coronaire.</p>` },
+        a: { title: 'Le muscle cardiaque', html: `<p>Ce n’est ni le muscle du biceps ni celui de l’intestin, mais un troisième type. Ses cellules sont soudées entre elles par des jonctions qui laissent passer le courant : le signal électrique se propage de proche en proche, et la paroi entière se contracte d’un seul bloc.</p>
+                                                  <p>Un tiers du volume de ces cellules est occupé par des centrales énergétiques. Elles brûlent en permanence et ne stockent rien. Ce muscle a ses propres artères, les coronaires, qui l’irriguent — et lui seul ne peut pas se reposer.</p>` },
       },
       cordage: {
-        label: { e: 'Les cordes', a: 'Cordages tendineux' },
+        label: { e: 'Les cordes', a: 'Les cordes de la valve' },
         e: { title: 'Les haubans de la porte', html: `<p>Ces filins retiennent la porte quand le sang pousse très fort — comme les cordes d’un parachute. Sans eux, elle se retournerait.</p>` },
-        a: { title: 'Cordages tendineux', html: `<p>Faisceaux collagéniques reliant le bord libre des feuillets aux muscles papillaires. Ils ne ferment pas la valve : ils <b>limitent son excursion</b>. Leur rupture provoque une insuffisance mitrale aiguë.</p>` },
+        a: { title: 'Les cordes de la valve', html: `<p>Des filins tendus entre le bord des volets et des piliers de muscle au fond de la chambre. Ils ne ferment pas la valve : ils <b>l’empêchent de se retourner</b> quand la pression monte, exactement comme les suspentes d’un parachute.</p>
+                                                     <p>Quand l’un d’eux casse, le volet part en arrière et le sang reflue d’un coup dans l’oreillette. C’est une urgence chirurgicale.</p>` },
       },
       sinusal: {
-        label: { e: 'Le chef d’orchestre', a: 'Nœud sinusal' },
+        label: { e: 'Le chef d’orchestre', a: 'Le donneur de tempo' },
         e: { title: 'Qui donne le rythme ?', html: `<p>Un petit groupe de cellules envoie une <b>impulsion électrique</b> à chaque battement. C’est lui qui décide du tempo — et qui accélère quand tu cours.</p>` },
-        a: { title: 'Nœud sinusal', html: `<p>Amas de cellules automatiques à la jonction veine cave supérieure / oreillette droite. Leur <b>dépolarisation diastolique lente</b> (courant funny I<sub>f</sub>) impose le rythme, modulé en permanence par les systèmes sympathique et parasympathique.</p>` },
+        a: { title: 'Le donneur de tempo', html: `<p>Un amas de quelques milliers de cellules, en haut à droite, qui se dépolarisent spontanément à intervalle régulier. Personne ne leur donne l’ordre : elles fuient lentement des ions jusqu’au déclenchement, et ça recommence.</p>
+                                                  <p>Les nerfs ne font que <b>moduler</b> ce tempo — accélérer sous adrénaline, ralentir au repos. Quand ces cellules fatiguent, on implante un stimulateur qui prend le relais. Un pacemaker ne remplace pas le cœur : il remplace ce métronome.</p>` },
       },
     },
     quiz: {
       e: { q: 'Combien de fois ton cœur bat-il en une journée ?', opts: ['Environ 100 000 fois', 'Environ 1 000 fois', 'Environ 10 millions de fois'], ok: 0,
            fb: 'Bravo ! <b>Environ 100 000 battements</b> par jour, soit à peu près 70 par minute au repos.' },
-      a: { q: 'Où naît normalement l’impulsion électrique cardiaque ?', opts: ['Nœud sinusal', 'Faisceau de His', 'Réseau de Purkinje'], ok: 0,
-           fb: 'Le <b>nœud sinusal</b>, structure la plus rapide de la hiérarchie ; les relais sous-jacents ne prennent la main qu’en cas de défaillance.' },
+      a: { q: 'Qu’entend-on exactement dans le « boum-boum » du cœur ?', opts: ['Les valves qui claquent en se fermant', 'Le muscle qui se contracte', 'Le sang qui frappe la paroi'], ok: 0,
+           fb: 'Les <b>valves</b>. Un souffle au cœur, c’est justement une valve qui ferme mal : on entend le sang fuir à contresens entre deux claquements.' },
     },
   },
 
   /* ══════════════════ 4 ══════════════════ */
   {
     id: 'poumons', accent: '#7fd8ff', map: [66, 60],
-    name: { e: 'Les poumons', a: 'Les alvéoles' },
-    sub: { e: 'La forêt de bulles', a: 'Sacs alvéolaires · barrière alvéolo-capillaire' },
+    name: { e: 'Les poumons', a: 'Les poumons' },
+    sub: { e: 'La forêt de bulles', a: 'Là où l’air passe dans le sang' },
     fog: { color: 0x1b2833, density: 0.0022 },
-    ambience: { base: 62, cutoff: 700, drone: 0.1, noise: 0.34, hiss: 1200 },
     intro: {
       e: 'Écoute : ça <b>respire</b>. Toutes ces bulles se gonflent et se dégonflent. C’est ici que l’air entre dans ton sang.',
-      a: 'Zone d’échange : les <b>sacs alvéolaires</b>. Chaque bulle est enserrée d’un réseau capillaire ; la barrière qui les sépare mesure moins d’un micron.',
+      a: 'Nous descendons le dernier couloir d’air avant les <b>bulles</b>. Chacune est entourée d’un filet de sang. Entre l’air et le sang : une paroi cinq cents fois plus fine qu’un cheveu.',
     },
     card: {
       e: {
@@ -214,43 +231,50 @@ export const STATIONS = [
                 ['0,5 micron', 'l’épaisseur de la paroi à traverser']],
       },
       a: {
-        kicker: 'Escale 4', title: 'La plus grande surface d’échange du corps',
-        html: `<p>L’arbre bronchique se divise sur <b>23 générations</b>, de la trachée aux sacs alvéolaires. Les seize premières conduisent l’air ; les dernières seules assurent les échanges gazeux.</p>
-               <p>On compte <b>300 à 500 millions d’alvéoles</b> pour une surface d’échange de <b>70 à 100 m²</b>. La barrière alvéolo-capillaire — épithélium de type I, membranes basales fusionnées, endothélium — n’excède pas <b>0,2 à 0,6 µm</b> : l’O₂ et le CO₂ la franchissent par simple diffusion passive.</p>
-               <p>Les pneumocytes de type II sécrètent le <b>surfactant</b>, film tensioactif sans lequel la tension superficielle collaberait les alvéoles à chaque expiration. Son absence chez le grand prématuré définit la maladie des membranes hyalines.</p>`,
-        stats: [['70–100 m²', 'surface alvéolaire totale'],
-                ['0,2–0,6 µm', 'épaisseur de la barrière'],
-                ['12–16/min', 'fréquence respiratoire de repos'],
-                ['≈ 6 L/min', 'ventilation minute au repos']],
+        kicker: 'Escale 4', title: 'Un terrain de tennis dans votre poitrine',
+        html: `<p>L’air se divise vingt-trois fois avant d’arriver ici. Les seize premières divisions ne servent qu’à conduire ; seules les dernières échangent quoi que ce soit.</p>
+               <p>Au bout : <b>300 à 500 millions de bulles</b>. Dépliées, elles couvriraient un court de tennis. Toute cette surface tient dans votre cage thoracique parce qu’elle est repliée à l’extrême — c’est la même astuce que dans l’intestin.</p>
+               <p>Il n’y a aucun mécanisme de transfert. L’oxygène passe simplement de là où il est concentré vers là où il l’est moins, à travers une paroi trop fine pour le retenir. C’est de la physique, pas de la biologie.</p>
+               <p>Un détail décisif : un film savonneux tapisse l’intérieur des bulles. Sans lui, la tension de l’eau les collerait à chaque expiration et il faudrait fournir un effort énorme pour les rouvrir. Les grands prématurés naissent avant de savoir le fabriquer ; on le leur administre à la naissance, et ça a changé leur pronostic.</p>
+               <p>Enfin : si vous êtes essoufflé en montant un escalier, ce ne sont presque jamais les poumons. Au repos, un globule rouge fait le plein en un tiers du temps qu’il passe ici. La limite est ailleurs — le cœur, ou le muscle.</p>`,
+        stats: [['70 à 100 m²', 'la surface d’échange, un court de tennis'],
+                ['0,5 micron', 'l’épaisseur de la paroi à traverser'],
+                ['12 à 16', 'respirations par minute au repos'],
+                ['0,75 seconde', 'le temps qu’un globule passe devant une bulle']],
       },
     },
     spots: {
       alveole: {
-        label: { e: 'Une bulle d’air', a: 'Alvéole' },
+        label: { e: 'Une bulle d’air', a: 'Une bulle' },
         e: { title: 'La bulle magique', html: `<p>Grosse comme un grain de poussière, elle se gonfle quand tu inspires. Il y en a <b>tellement</b> que les compter une par une prendrait dix ans.</p>` },
-        a: { title: 'Alvéole pulmonaire', html: `<p>Sphère de 200 à 300 µm tapissée de pneumocytes I (95 % de la surface, 5 % des cellules) et II. Les <b>pores de Kohn</b> assurent une ventilation collatérale entre alvéoles voisines.</p>` },
+        a: { title: 'Une bulle', html: `<p>Un quart de millimètre de diamètre. Sa paroi est faite de cellules si étirées qu’elles ne sont presque plus que de la membrane — c’est ce qui permet aux gaz de la traverser.</p>
+                                        <p>Les bulles voisines communiquent par de petits orifices. Si un couloir se bouche, la zone en aval continue d’être ventilée par les côtés. Une redondance discrète, mais qui évite bien des accidents.</p>` },
       },
       capillaire: {
-        label: { e: 'Les tuyaux rouges', a: 'Réseau capillaire' },
+        label: { e: 'Les tuyaux rouges', a: 'Le filet de sang' },
         e: { title: 'Le filet de sang', html: `<p>Autour de chaque bulle court un filet de tuyaux si fins que les globules rouges doivent passer <b>à la file indienne</b>. C’est là qu’ils se rechargent en oxygène.</p>` },
-        a: { title: 'Capillaires pulmonaires', html: `<p>Le lit capillaire forme une véritable <em>nappe de sang</em> autour de l’alvéole. Une hématie y séjourne <b>0,75 s</b> au repos ; l’équilibre des pressions en O₂ est atteint en un tiers de ce temps, d’où l’énorme réserve fonctionnelle à l’effort.</p>` },
+        a: { title: 'Le filet de sang', html: `<p>Les vaisseaux sont si serrés autour de chaque bulle qu’ils forment presque une nappe continue de sang. Les globules y passent à la file, un par un, en se déformant.</p>
+                                               <p>Un globule ne reste devant la bulle que trois quarts de seconde au repos — et il a fini de se charger au bout d’un quart de seconde. Cette marge est ce qui vous permet de courir : à l’effort le sang défile trois fois plus vite, et l’échange se fait quand même.</p>` },
       },
       surfactant: {
-        label: { e: 'Le vernis', a: 'Surfactant' },
+        label: { e: 'Le vernis', a: 'Le film anti-collage' },
         e: { title: 'Le liquide anti-collage', html: `<p>Un film glissant recouvre l’intérieur des bulles pour les empêcher de <b>se coller</b> quand tu souffles. Sans lui, respirer serait épuisant.</p>` },
-        a: { title: 'Surfactant alvéolaire', html: `<p>Complexe phospholipidique (dipalmitoyl-phosphatidylcholine) et protéique sécrété par les pneumocytes II. Il abaisse la tension superficielle et, selon la loi de <b>Laplace</b>, stabilise les alvéoles de petit rayon face aux grandes.</p>` },
+        a: { title: 'Le film anti-collage', html: `<p>Un film gras et savonneux sécrété par des cellules de la paroi. Son rôle : casser la tension de l’eau qui, sinon, ferait s’effondrer les petites bulles au profit des grosses à chaque expiration.</p>
+                                                   <p>C’est exactement ce qui manque à un enfant né trop tôt : il fabrique ce film vers la fin de la grossesse. On le lui instille directement dans les poumons à la naissance — l’une des interventions les plus efficaces de la médecine néonatale.</p>` },
       },
       bronchiole: {
-        label: { e: 'Le couloir d’air', a: 'Bronchiole terminale' },
+        label: { e: 'Le couloir d’air', a: 'Le dernier couloir' },
         e: { title: 'La dernière branche', html: `<p>C’est le plus petit couloir avant les bulles. Ses murs peuvent se serrer ou s’élargir selon les besoins — chez les asthmatiques, ils se serrent trop.</p>` },
-        a: { title: 'Bronchiole terminale', html: `<p>Dernière division purement conductrice, dépourvue de cartilage : son calibre dépend du <b>muscle lisse</b> et donc du tonus autonome. C’est le site du bronchospasme asthmatique.</p>` },
+        a: { title: 'Le dernier couloir', html: `<p>Le dernier segment qui ne fait que conduire l’air. Il n’a plus de cartilage pour le tenir ouvert : son diamètre dépend entièrement d’un anneau de muscle autour de lui.</p>
+                                                 <p>C’est précisément ici que se joue la crise d’asthme : ce muscle se contracte, la muqueuse gonfle, et le passage se referme. Un bronchodilatateur relâche ce muscle — d’où l’effet en quelques minutes.</p>
+                                                 <p>Les cils que vous voyez battent tous dans le même sens, vers le haut, et font remonter les poussières piégées dans le mucus. Le tabac les paralyse : la toux du fumeur, c’est ce travail fait à la main.</p>` },
       },
     },
     quiz: {
       e: { q: 'Si on dépliait toutes tes alvéoles, ça couvrirait…', opts: ['Un terrain de tennis', 'Une feuille de papier', 'Un stade de football'], ok: 0,
            fb: 'Oui ! Environ <b>70 à 100 m²</b> — la taille d’un terrain de tennis, replié dans ta poitrine.' },
-      a: { q: 'Quel est le rôle principal du surfactant ?', opts: ['Abaisser la tension superficielle alvéolaire', 'Transporter l’oxygène', 'Filtrer les poussières'], ok: 0,
-           fb: 'Il réduit la tension superficielle et <b>stabilise les alvéoles de petit rayon</b> — conséquence directe de la loi de Laplace.' },
+      a: { q: 'Quand vous êtes essoufflé en montant un escalier, qu’est-ce qui est le plus souvent limitant ?', opts: ['Le cœur ou le muscle, rarement les poumons', 'La surface des poumons', 'La vitesse de l’air dans les bronches'], ok: 0,
+           fb: 'Les poumons ont une <b>énorme réserve</b> : le sang y fait le plein en un tiers du temps disponible. Chez une personne saine, la limite à l’effort est cardiaque ou musculaire.' },
     },
   },
 
@@ -258,12 +282,11 @@ export const STATIONS = [
   {
     id: 'estomac', accent: '#d9b23c', map: [45, 92],
     name: { e: 'L’estomac', a: 'L’estomac' },
-    sub: { e: 'La cuve à acide', a: 'Muqueuse fundique · plis gastriques' },
+    sub: { e: 'La cuve à acide', a: 'La cuve acide' },
     fog: { color: 0x2b2208, density: 0.0026 },
-    ambience: { base: 34, cutoff: 170, drone: 0.22, noise: 0.36, hiss: 300 },
     intro: {
       e: 'Accroche-toi : on entre dans <b>l’estomac</b>. Ces grandes vagues, c’est le muscle qui mélange la nourriture. Et l’air pique un peu : ici, c’est acide !',
-      a: 'Cavité gastrique. Les reliefs sont des <b>plis</b> qui s’effacent au remplissage ; l’ambiance est à pH 1,5–3,5, entretenue par les cellules pariétales.',
+      a: 'Nous entrons dans l’estomac. Ces grands bourrelets s’effacent quand il se remplit. L’ambiance est à un acide comparable à celui d’une batterie diluée — et la paroi tient le coup.',
     },
     card: {
       e: {
@@ -277,43 +300,49 @@ export const STATIONS = [
                 ['2 à 4 h', 'pour vider un repas complet']],
       },
       a: {
-        kicker: 'Escale 5', title: 'Chimie et mécanique',
-        html: `<p>L’estomac assure trois fonctions : <b>réservoir</b>, <b>brassage</b> et <b>digestion initiale</b>. Sa capacité de repos avoisine 50 mL et s’étend au-delà d’un litre par relaxation réceptive.</p>
-               <p>Les cellules pariétales sécrètent l’<b>acide chlorhydrique</b> via la pompe H⁺/K⁺-ATPase — cible des inhibiteurs de la pompe à protons. Le pH descend à 1,5–3,5, ce qui active le pepsinogène en <em>pepsine</em> et amorce la protéolyse. Les cellules principales fournissent le pepsinogène, les cellules à mucus la barrière protectrice.</p>
-               <p>Cette barrière est double : gel de mucus et sécrétion de <b>bicarbonates</b> qui maintient un pH proche de 7 au contact de l’épithélium. L’épithélium de surface se renouvelle en 3 à 5 jours.</p>`,
-        stats: [['1,5–3,5', 'pH du contenu gastrique'],
-                ['≈ 2 L/jour', 'volume de suc gastrique'],
-                ['3/min', 'fréquence des ondes péristaltiques'],
-                ['B12', 'vitamine dont l’absorption dépend du facteur intrinsèque']],
+        kicker: 'Escale 5', title: 'Pourquoi il ne se digère pas lui-même',
+        html: `<p>L’estomac fait trois choses : il stocke, il broie, il attaque chimiquement. Il se détend pour accueillir un repas sans que la pression monte — c’est pour cela qu’on peut avaler un litre et demi sans sensation d’écrasement.</p>
+               <p>Il verse un acide puissant, cent mille fois plus concentré que votre sang. Cet acide ne digère presque rien lui-même : son rôle est d’<b>activer</b> une enzyme qui découpe les protéines, et de tuer ce que vous avalez.</p>
+               <p>La vraie question, c’est pourquoi il tient. Réponse : une couche de gel épaisse d’un demi-millimètre, dans laquelle la paroi injecte en continu de quoi neutraliser l’acide. À la surface des cellules, le milieu est presque neutre. Et l’épithélium se refait en trois jours.</p>
+               <p>Quand cette défense cède — anti-inflammatoires pris trop longtemps, ou une bactérie particulière qui s’y installe — l’acide attaque la paroi : c’est l’ulcère. Ce n’est pas le stress qui le crée, contrairement à ce qu’on a longtemps enseigné.</p>
+               <p>Et la remontée acide qui brûle derrière le sternum n’est pas un excès d’acide : c’est un clapet, en haut, qui ferme mal.</p>`,
+        stats: [['pH 1,5 à 3,5', 'plus acide que le vinaigre'],
+                ['2 litres', 'de suc versés chaque jour'],
+                ['3 fois par minute', 'les vagues de brassage'],
+                ['3 à 5 jours', 'pour refaire toute la paroi']],
       },
     },
     spots: {
       plis: {
-        label: { e: 'Les vagues', a: 'Plis gastriques' },
+        label: { e: 'Les vagues', a: 'Les vagues de muscle' },
         e: { title: 'Des vagues de muscle', html: `<p>Ces bourrelets se déplacent du haut vers le bas et écrasent la nourriture contre la sortie. On appelle ça le <b>péristaltisme</b> — le même mouvement que dans tout ton tube digestif.</p>` },
-        a: { title: 'Plis et péristaltisme', html: `<p>Les plis de la muqueuse s’effacent lors du remplissage. La paroi comporte <b>trois</b> couches musculaires (longitudinale, circulaire, oblique) : c’est ce qui autorise un véritable <em>malaxage</em> et non un simple transport.</p>` },
+        a: { title: 'Les vagues de muscle', html: `<p>Ces bourrelets ne sont pas fixes : ce sont des vagues qui descendent vers la sortie et écrasent le contenu au passage. Trois par minute.</p>
+                                                   <p>L’estomac est le seul segment du tube digestif à posséder <b>trois</b> couches de muscle au lieu de deux. C’est ce qui lui permet de malaxer en tordant, et pas seulement de pousser.</p>` },
       },
       acide: {
-        label: { e: 'L’acide', a: 'Cellules pariétales' },
+        label: { e: 'L’acide', a: 'Les puits à acide' },
         e: { title: 'Plus fort que le vinaigre', html: `<p>Ces petits puits versent l’acide. Il est si puissant qu’il dissout la viande — et c’est aussi une <b>barrière anti-microbes</b> très efficace.</p>` },
-        a: { title: 'Cellules pariétales', html: `<p>Elles sécrètent HCl contre un gradient de plus de <b>10⁶</b> et le <b>facteur intrinsèque</b>, indispensable à l’absorption iléale de la vitamine B12. Leur stimulation est triple : gastrine, acétylcholine, histamine.</p>` },
+        a: { title: 'Les puits à acide', html: `<p>Au fond de ces puits, des cellules pompent activement de l’acide contre un gradient d’un million. C’est un travail énergétique considérable, mené en continu.</p>
+                                                <p>Les médicaments anti-acides les plus efficaces bloquent directement cette pompe — d’où leur nom d’inhibiteurs de la pompe à protons. Ces cellules produisent aussi une substance sans laquelle la <b>vitamine B12</b> ne peut pas être absorbée plus loin : après une ablation d’estomac, il faut la donner en injections à vie.</p>` },
       },
       mucus: {
-        label: { e: 'Le bouclier', a: 'Barrière muqueuse' },
+        label: { e: 'Le bouclier', a: 'Le gel protecteur' },
         e: { title: 'Un gel qui sauve la vie', html: `<p>Une couche gluante recouvre toute la paroi. Elle empêche l’acide de toucher les cellules vivantes. Quand ce bouclier s’abîme, ça fait un <b>ulcère</b>.</p>` },
-        a: { title: 'Barrière muco-bicarbonatée', html: `<p>Gel de mucines de 200 à 500 µm, associé à une sécrétion de HCO₃⁻ qui établit un <b>gradient de pH</b> de 2 dans la lumière à ~7 à la surface cellulaire. Sa rupture — AINS, <em>Helicobacter pylori</em> — est le mécanisme central de la maladie ulcéreuse.</p>` },
+        a: { title: 'Le gel protecteur', html: `<p>Un demi-millimètre de gel collant, en renouvellement permanent, dans lequel la paroi diffuse de quoi neutraliser l’acide. Le résultat est un dégradé : très acide dans la cavité, presque neutre au contact des cellules.</p>
+                                                <p>Deux choses le mettent en échec. Les anti-inflammatoires, qui bloquent la molécule qui commande sa fabrication — d’où les ulcères sous traitement prolongé. Et une bactérie capable de survivre dans l’acide en se réfugiant dans le gel, responsable de la majorité des ulcères, et qu’un traitement antibiotique élimine.</p>` },
       },
       chyme: {
-        label: { e: 'La bouillie', a: 'Chyme' },
+        label: { e: 'La bouillie', a: 'La bouillie' },
         e: { title: 'Ce qu’il reste du repas', html: `<p>Après quelques heures, ton repas est devenu une <b>bouillie</b> liquide. Elle passe par une petite porte, cuillère par cuillère, vers l’intestin.</p>` },
-        a: { title: 'Chyme gastrique', html: `<p>Suspension acide semi-liquide évacuée par le <b>pylore</b> de façon fractionnée. La vidange dépend de la composition : rapide pour les glucides, lente pour les lipides, réglée par le rétrocontrôle duodénal (CCK, sécrétine).</p>` },
+        a: { title: 'La bouillie', html: `<p>Ce qu’il reste du repas après quelques heures : une suspension acide, presque liquide, lâchée dans l’intestin par petites quantités successives.</p>
+                                          <p>La vitesse dépend de ce que vous avez mangé : les sucres partent vite, les graisses très lentement. C’est l’intestin qui commande ce débit, en freinant l’estomac quand il reçoit du gras. D’où la sensation de lourdeur qui dure après un repas riche — l’estomac est encore plein.</p>` },
       },
     },
     quiz: {
       e: { q: 'Pourquoi l’estomac ne se digère-t-il pas lui-même ?', opts: ['Une couche de mucus le protège', 'Il n’y a pas vraiment d’acide', 'Il est en métal'], ok: 0,
            fb: 'Exact : un <b>gel protecteur</b> recouvre sa paroi, et celle-ci se renouvelle tous les trois jours.' },
-      a: { q: 'Quelle enzyme l’acidité gastrique active-t-elle ?', opts: ['La pepsine', 'L’amylase', 'La lipase pancréatique'], ok: 0,
-           fb: 'Le pepsinogène s’auto-active en <b>pepsine</b> en dessous de pH 5 : la protéolyse commence dès l’estomac.' },
+      a: { q: 'Quelle est la cause la plus fréquente d’un ulcère de l’estomac ?', opts: ['Une bactérie, ou les anti-inflammatoires', 'Le stress au travail', 'Un excès d’aliments épicés'], ok: 0,
+           fb: 'On a longtemps accusé le stress. Ce sont en réalité une <b>bactérie</b> installée dans le gel protecteur, ou les <b>anti-inflammatoires</b> pris au long cours. La première se traite par antibiotiques.' },
     },
   },
 
@@ -321,12 +350,11 @@ export const STATIONS = [
   {
     id: 'intestin', accent: '#ff9d5c', map: [50, 112],
     name: { e: 'L’intestin', a: 'L’intestin grêle' },
-    sub: { e: 'La forêt de doigts', a: 'Villosités · bordure en brosse' },
+    sub: { e: 'La forêt de doigts', a: 'La forêt qui absorbe' },
     fog: { color: 0x2c1206, density: 0.0055 },
-    ambience: { base: 46, cutoff: 300, drone: 0.16, noise: 0.3, hiss: 520 },
     intro: {
       e: 'Regarde cette forêt qui ondule : ce sont des <b>millions de petits doigts</b>. Ils attrapent la nourriture et la font passer dans ton sang.',
-      a: 'Muqueuse du grêle. Ces reliefs digitiformes sont les <b>villosités</b> ; chacune abrite un capillaire et un vaisseau chylifère.',
+      a: 'Cette forêt qui ondule autour de vous, ce sont des millions de petits doigts d’un demi-millimètre. C’est ici que ce que vous mangez devient vous.',
     },
     card: {
       e: {
@@ -340,43 +368,50 @@ export const STATIONS = [
                 ['3 jours', 'pour renouveler toute sa paroi']],
       },
       a: {
-        kicker: 'Escale 6', title: 'L’organe de l’absorption',
-        html: `<p>Duodénum, jéjunum, iléon : <b>6 à 7 mètres</b> où se joue l’essentiel de la digestion et la quasi-totalité de l’absorption.</p>
-               <p>Trois niveaux de plissement amplifient la surface : valvules conniventes (×3), <b>villosités</b> (×10) et microvillosités de la bordure en brosse (×20). La surface d’absorption effective est estimée aujourd’hui à environ <b>30 m²</b> — bien loin des 200 m² longtemps cités, mais déjà considérable.</p>
-               <p>Chaque villosité contient un réseau capillaire (oses, acides aminés → veine porte) et un <b>chylifère central</b> qui draine les chylomicrons vers la voie lymphatique, court-circuitant le foie. L’épithélium se renouvelle intégralement en 3 à 5 jours depuis les cryptes de Lieberkühn.</p>`,
-        stats: [['≈ 30 m²', 'surface d’absorption réelle'],
-                ['≈ 20 000', 'microvillosités par entérocyte'],
-                ['3–5 j', 'renouvellement de l’épithélium'],
-                ['10¹⁴', 'bactéries dans le tube digestif']],
+        kicker: 'Escale 6', title: 'Le même truc, répété trois fois',
+        html: `<p>Sept mètres de tuyau repliés dans votre ventre. Tout ce que vous absorbez de la journée passe par ici — le côlon, ensuite, ne récupère guère que de l’eau.</p>
+               <p>Le problème à résoudre est simple : maximiser la surface de contact. La solution est appliquée <b>trois fois de suite</b>. De grands replis en accordéon multiplient la surface par trois. Chaque repli est couvert de doigts, qui multiplient par dix. Chaque cellule de chaque doigt porte des milliers de micro-doigts, qui multiplient par vingt.</p>
+               <p>Résultat : environ <b>30 m²</b> de surface absorbante. On a longtemps cité 200 m² et un terrain de tennis ; les mesures modernes sont plus modestes, et déjà remarquables.</p>
+               <p>Un détail qui surprend : les graisses ne prennent pas la même sortie que le reste. Sucres et protéines vont directement au foie ; les graisses partent par le réseau lymphatique et rejoignent le sang près du cou, en contournant le foie.</p>
+               <p>Enfin, cette paroi se renouvelle intégralement en trois à cinq jours. C’est le tissu le plus rapide du corps — et c’est pourquoi une chimiothérapie, qui vise les cellules à division rapide, donne presque toujours des troubles digestifs.</p>`,
+        stats: [['≈ 30 m²', 'la surface d’absorption réelle'],
+                ['20 000', 'micro-doigts sur une seule cellule'],
+                ['3 à 5 jours', 'pour renouveler toute la paroi'],
+                ['100 000 milliards', 'de bactéries dans le tube digestif']],
       },
     },
     spots: {
       villosite: {
-        label: { e: 'Un petit doigt', a: 'Villosité' },
+        label: { e: 'Un petit doigt', a: 'Un doigt' },
         e: { title: 'Le doigt qui attrape', html: `<p>Il mesure moins d’un millimètre et il bouge tout seul pour brasser la nourriture autour de lui. Il y en a <b>des millions</b> côte à côte.</p>` },
-        a: { title: 'Villosité intestinale', html: `<p>Saillie de 0,5 à 1 mm animée de mouvements propres par la <em>musculaire muqueuse</em>, ce qui renouvelle la couche de fluide non agitée à son contact. Son axe conjonctif porte capillaires, chylifère et terminaisons nerveuses.</p>` },
+        a: { title: 'Un doigt', html: `<p>Un demi-millimètre à peine, mais il possède son propre petit muscle et se balance tout seul. Ce mouvement n’est pas décoratif : il renouvelle en permanence le liquide immobile qui stagnerait contre sa surface, sans quoi l’absorption s’étoufferait elle-même.</p>
+                                       <p>À l’intérieur : un vaisseau sanguin, un vaisseau lymphatique, et des terminaisons nerveuses. Le tube digestif possède son propre réseau de neurones, environ cent millions — autant que la moelle épinière d’un chat.</p>` },
       },
       brosse: {
-        label: { e: 'Les poils du doigt', a: 'Bordure en brosse' },
+        label: { e: 'Les poils du doigt', a: 'Les micro-doigts' },
         e: { title: 'Encore plus petit !', html: `<p>Chaque doigt est lui-même couvert de <b>milliers de poils microscopiques</b>. C’est le secret de l’intestin : ajouter de la surface, encore et encore.</p>` },
-        a: { title: 'Bordure en brosse', html: `<p>Environ 20 000 microvillosités par entérocyte, porteuses des <b>enzymes de membrane</b> — lactase, sucrase-isomaltase, peptidases — qui achèvent l’hydrolyse au contact même des transporteurs. Le déficit en lactase explique l’intolérance au lactose.</p>` },
+        a: { title: 'Les micro-doigts', html: `<p>Vingt mille par cellule. Ils ne servent pas qu’à gagner de la surface : ils portent les <b>enzymes</b> qui terminent le découpage, juste à côté des portes qui font entrer le résultat. Découpage et absorption au même endroit, à quelques nanomètres près.</p>
+                                                <p>L’une de ces enzymes découpe le sucre du lait. La plupart des adultes dans le monde cessent de la produire après l’enfance : le lactose non découpé arrive intact dans le côlon, où les bactéries le fermentent. Ballonnements, gaz, diarrhée. Ce n’est pas une allergie — c’est une enzyme manquante, ici.</p>` },
       },
       chylifere: {
-        label: { e: 'Le tuyau blanc', a: 'Chylifère' },
+        label: { e: 'Le tuyau blanc', a: 'La sortie des graisses' },
         e: { title: 'La route des graisses', html: `<p>Les graisses ne prennent pas la même route que le reste : elles empruntent un <b>tuyau blanc</b> qui rejoint la circulation plus loin.</p>` },
-        a: { title: 'Vaisseau chylifère', html: `<p>Capillaire lymphatique borgne au centre de la villosité. Il collecte les <b>chylomicrons</b>, trop volumineux pour l’endothélium sanguin, et les conduit au canal thoracique : les lipides échappent ainsi au premier passage hépatique.</p>` },
+        a: { title: 'La sortie des graisses', html: `<p>Un vaisseau lymphatique fermé au bout, planté au centre de chaque doigt. Les graisses sont emballées en gouttelettes trop grosses pour entrer dans un vaisseau sanguin : elles empruntent ce chemin-là.</p>
+                                                     <p>La lymphe chargée de graisses devient laiteuse après un repas gras — d’où le nom. Elle remonte jusqu’à la base du cou avant de rejoindre le sang, <b>sans passer par le foie</b>. C’est pourquoi certains médicaments liposolubles échappent au filtrage hépatique.</p>` },
       },
       microbiote: {
-        label: { e: 'Les bactéries amies', a: 'Microbiote' },
+        label: { e: 'Les bactéries amies', a: 'Vos bactéries' },
         e: { title: 'Des milliards de colocataires', html: `<p>Des bactéries vivent dans ton intestin — et elles sont <b>utiles</b> : elles digèrent ce que tu ne peux pas digérer et t’aident à te défendre.</p>` },
-        a: { title: 'Microbiote intestinal', html: `<p>≈ 10¹⁴ micro-organismes, majoritairement coliques, pour un métagénome cent fois plus riche que le génome humain. Il fermente les fibres en <b>acides gras à chaîne courte</b>, synthétise vitamines K et B, et éduque le système immunitaire muqueux.</p>` },
+        a: { title: 'Vos bactéries', html: `<p>Environ cent mille milliards, surtout dans le côlon. Elles pèsent près de deux kilos et portent cent fois plus de gènes que vous.</p>
+                                            <p>Elles ne sont pas des passagers : elles fermentent les fibres que vous ne savez pas digérer et en tirent des molécules dont vos propres cellules intestinales se nourrissent. Elles fabriquent une partie de vos vitamines K et B. Elles occupent la place, ce qui empêche les indésirables de s’installer.</p>
+                                            <p>C’est aussi pour ça qu’un antibiotique donne la diarrhée : il ne fait pas le tri.</p>` },
       },
     },
     quiz: {
       e: { q: 'À quoi servent les millions de petits doigts de l’intestin ?', opts: ['À augmenter la surface qui absorbe', 'À pousser la nourriture', 'À fabriquer de l’acide'], ok: 0,
            fb: 'Bien vu ! Plus de surface = plus de nourriture récupérée. Dépliés, ils couvriraient <b>30 m²</b>.' },
-      a: { q: 'Par quelle voie les chylomicrons quittent-ils la villosité ?', opts: ['Le chylifère lymphatique', 'La veine porte', 'L’artère mésentérique'], ok: 0,
-           fb: 'Par la <b>lymphe</b> : les lipides rejoignent la circulation via le canal thoracique, sans premier passage hépatique.' },
+      a: { q: 'Qu’est-ce que l’intolérance au lactose, exactement ?', opts: ['Une enzyme intestinale qu’on cesse de produire', 'Une allergie aux protéines du lait', 'Un excès d’acidité gastrique'], ok: 0,
+           fb: 'Ce n’est pas une allergie. C’est l’<b>enzyme</b> qui découpe le sucre du lait qui disparaît après l’enfance chez la majorité des adultes. Le lactose intact arrive au côlon, où les bactéries le fermentent.' },
     },
   },
 
@@ -384,12 +419,11 @@ export const STATIONS = [
   {
     id: 'foie', accent: '#b8543f', map: [66, 86],
     name: { e: 'Le foie', a: 'Le foie' },
-    sub: { e: 'L’usine du corps', a: 'Lobule hépatique · sinusoïdes' },
+    sub: { e: 'L’usine du corps', a: 'L’usine chimique' },
     fog: { color: 0x2a0d0a, density: 0.0018 },
-    ambience: { base: 40, cutoff: 210, drone: 0.2, noise: 0.22, hiss: 380 },
     intro: {
       e: 'Ici, tout est bien rangé : le <b>foie</b> est une usine. Ces couloirs rouges sont des lignes de production, et il y en a des centaines de milliers.',
-      a: 'Architecture <b>lobulaire</b> : travées d’hépatocytes rayonnant autour d’une veine centrale, séparées par des sinusoïdes. Un même motif, répété 100 000 fois.',
+      a: 'Le foie est bâti sur un seul motif, répété cent mille fois. Ces couloirs rayonnants sont des lignes de production identiques. Tout ce que vous avalez passe ici avant d’atteindre le reste du corps.',
     },
     card: {
       e: {
@@ -403,43 +437,50 @@ export const STATIONS = [
                 ['Il repousse', 'le seul organe capable de se régénérer']],
       },
       a: {
-        kicker: 'Escale 7', title: 'Le carrefour métabolique',
-        html: `<p>Environ <b>1,5 kg</b>, doublement vascularisé : 75 % du sang lui vient de la <b>veine porte</b>, chargée des nutriments intestinaux, 25 % de l’artère hépatique. Il reçoit près d’un quart du débit cardiaque.</p>
-               <p>L’unité fonctionnelle est le <b>lobule</b> : travées d’hépatocytes rayonnant vers une veine centrolobulaire, baignées de sinusoïdes à endothélium fenestré. Le sang circule de la périphérie vers le centre, la bile en sens inverse — un <em>contre-courant</em> parfait.</p>
-               <p>Fonctions : néoglucogenèse et glycogénogenèse, synthèse de l’albumine et des facteurs de coagulation, cycle de l’urée, métabolisme des xénobiotiques (cytochromes P450, phases I et II), sécrétion biliaire, stockage du fer et des vitamines liposolubles. Sa capacité de <b>régénération</b> est unique chez l’adulte.</p>`,
-        stats: [['≈ 100 000', 'lobules hépatiques'],
-                ['75 %', 'de son sang vient de la veine porte'],
-                ['0,5–1 L', 'de bile produite par jour'],
-                ['P450', 'la famille d’enzymes qui métabolise les médicaments']],
+        kicker: 'Escale 7', title: 'Le péage obligatoire',
+        html: `<p>Un kilo et demi, et une particularité que rien d’autre ne partage : les trois quarts de son sang ne viennent pas du cœur mais de l’intestin. Tout ce que vous absorbez arrive ici <b>avant</b> d’atteindre la circulation générale.</p>
+               <p>C’est un péage. Le foie prélève, transforme, stocke, détruit. Le sucre en excès est mis en réserve ; entre les repas, il le relâche pour maintenir votre glycémie. Sans lui, vous ne tiendriez pas une nuit sans manger.</p>
+               <p>Ce péage explique la pharmacologie. Beaucoup de médicaments avalés sont en partie détruits avant même d’avoir agi — d’où des doses orales plus fortes qu’en injection. Certains, à l’inverse, ne deviennent actifs qu’après passage ici.</p>
+               <p>L’alcool suit le même chemin. Le foie le transforme d’abord en une molécule plus toxique que l’alcool lui-même, avant de la neutraliser. Quand la première étape va plus vite que la seconde, cette molécule s’accumule : c’est l’essentiel de la gueule de bois. Et le foie ne traite qu’<b>un verre par heure</b>, quoi qu’on fasse. Ni le café, ni l’eau, ni la douche froide n’y changent rien.</p>
+               <p>Enfin, c’est le seul organe qui repousse. Amputé des deux tiers, il retrouve sa masse en quelques semaines — c’est ce qui permet le don entre vivants.</p>`,
+        stats: [['1,5 kg', 'le plus gros organe interne'],
+                ['75 %', 'de son sang vient directement de l’intestin'],
+                ['1 verre/heure', 'la vitesse d’élimination de l’alcool'],
+                ['Quelques semaines', 'pour repousser après ablation des deux tiers']],
       },
     },
     spots: {
       lobule: {
-        label: { e: 'Un module', a: 'Lobule hépatique' },
+        label: { e: 'Un module', a: 'Un module' },
         e: { title: 'Le même motif, partout', html: `<p>Le foie est fait du même petit module répété des <b>centaines de milliers de fois</b> — comme des alvéoles de ruche. Chacun travaille de la même façon.</p>` },
-        a: { title: 'Lobule hépatique', html: `<p>Prisme hexagonal de 1 à 2 mm centré sur une veine centrolobulaire, bordé aux angles par les <b>espaces portes</b> (branche portale, artériole, canalicule biliaire). Un gradient d’oxygène s’installe de la périphérie au centre : c’est la <em>zonation métabolique</em>.</p>` },
+        a: { title: 'Un module', html: `<p>Un hexagone d’un à deux millimètres, répété cent mille fois. Le sang entre par les angles et converge vers une veine centrale ; la bile part en sens inverse. Deux circulations à contre-courant dans le même espace.</p>
+                                        <p>Les cellules d’entrée baignent dans un sang riche en oxygène, celles du centre dans un sang appauvri. Elles ne font donc pas le même travail — et ne meurent pas dans le même ordre. Une intoxication au paracétamol détruit d’abord le centre.</p>` },
       },
       hepatocyte: {
-        label: { e: 'L’ouvrier', a: 'Hépatocyte' },
+        label: { e: 'L’ouvrier', a: 'La cellule à tout faire' },
         e: { title: 'La cellule à tout faire', html: `<p>Une seule de ces cellules sait faire <b>des centaines de choses</b> à la fois : stocker, fabriquer, nettoyer. C’est la plus polyvalente du corps.</p>` },
-        a: { title: 'Hépatocyte', html: `<p>Cellule polarisée occupant 80 % du volume hépatique, souvent binucléée et polyploïde. Riche en réticulum endoplasmique lisse (détoxication) et en <b>mitochondries</b>. Sa face apicale délimite, avec sa voisine, le <em>canalicule biliaire</em>.</p>` },
+        a: { title: 'La cellule à tout faire', html: `<p>La cellule la plus polyvalente du corps. Elle fabrique l’albumine qui retient l’eau dans vos vaisseaux, la plupart des facteurs qui font coaguler votre sang, le cholestérol, les sels biliaires, l’urée qui évacue vos déchets azotés.</p>
+                                                      <p>C’est aussi elle qui démonte les médicaments, grâce à une famille d’enzymes très nombreuse. Deux personnes n’ont pas les mêmes versions de ces enzymes : à dose égale, l’une éliminera un médicament deux fois plus vite que l’autre. Le pamplemousse en bloque une, ce qui fait grimper la concentration de certains traitements — la mise en garde sur les notices vient de là.</p>` },
       },
       sinusoide: {
-        label: { e: 'Le couloir de sang', a: 'Sinusoïde' },
+        label: { e: 'Le couloir de sang', a: 'Le couloir percé' },
         e: { title: 'Un couloir plein de trous', html: `<p>Ces couloirs laissent le sang <b>toucher directement</b> les cellules du foie — il n’y a presque pas de barrière. C’est ce qui rend le tri si efficace.</p>` },
-        a: { title: 'Sinusoïde hépatique', html: `<p>Capillaire à endothélium <b>fenestré et discontinu</b>, dépourvu de lame basale continue : le plasma accède librement à l’espace de Disse et aux microvillosités hépatocytaires. On y trouve les <b>cellules de Kupffer</b>, macrophages résidents qui épurent bactéries et débris portaux.</p>` },
+        a: { title: 'Le couloir percé', html: `<p>Ailleurs dans le corps, la paroi des vaisseaux est étanche. Ici, elle est criblée de trous : le plasma s’échappe et baigne directement les cellules du foie. Il n’y a presque aucune barrière entre votre sang et l’usine.</p>
+                                               <p>Des cellules dévoreuses patrouillent ces couloirs et capturent les bactéries qui auraient franchi la paroi intestinale. C’est un filtre sanitaire permanent, invisible et considérable.</p>` },
       },
       bile: {
-        label: { e: 'La bile', a: 'Canalicule biliaire' },
+        label: { e: 'La bile', a: 'La bile' },
         e: { title: 'Le savon des graisses', html: `<p>Le foie fabrique un liquide vert-jaune, la <b>bile</b>, stocké dans la vésicule. Au moment du repas, elle est lâchée dans l’intestin pour découper les graisses en gouttelettes.</p>` },
-        a: { title: 'Voie biliaire', html: `<p>La bile — sels biliaires, phospholipides, cholestérol, bilirubine conjuguée — chemine à contre-courant du sang vers les canaux, la vésicule et le duodénum. Les sels biliaires <b>émulsifient</b> les lipides et sont réabsorbés à 95 % dans l’iléon : c’est le <em>cycle entéro-hépatique</em>.</p>` },
+        a: { title: 'La bile', html: `<p>Un litre par jour, stocké et concentré dans la vésicule entre les repas. Elle agit comme un détergent : elle casse les graisses en gouttelettes assez fines pour que les enzymes puissent les attaquer. Sans elle, les graisses traversent sans être absorbées.</p>
+                                      <p>Elle sert aussi de poubelle : c’est par là que part le produit de dégradation des vieux globules rouges, qui donne aux selles leur couleur. Quand la voie est bouchée, ce pigment reflue dans le sang — la peau et les yeux jaunissent, et les selles se décolorent.</p>
+                                      <p>95 % des sels biliaires sont récupérés en fin d’intestin et renvoyés au foie. Ils font ce circuit plusieurs fois par repas.</p>` },
       },
     },
     quiz: {
       e: { q: 'Quel organe est capable de repousser après avoir été coupé ?', opts: ['Le foie', 'Le cœur', 'Le cerveau'], ok: 0,
            fb: 'Le <b>foie</b> ! C’est le seul organe interne capable de se reconstruire.' },
-      a: { q: 'Quelle proportion du sang hépatique provient de la veine porte ?', opts: ['Environ 75 %', 'Environ 25 %', 'Environ 50 %'], ok: 0,
-           fb: 'Trois quarts, pauvres en oxygène mais riches en nutriments : c’est le <b>premier passage hépatique</b>, décisif en pharmacologie.' },
+      a: { q: 'Peut-on accélérer l’élimination de l’alcool ?', opts: ['Non, le foie traite environ un verre par heure', 'Oui, en buvant beaucoup d’eau', 'Oui, avec du café fort'], ok: 0,
+           fb: 'Le rythme est fixé par une enzyme saturée en permanence : <b>environ un verre par heure</b>, quoi qu’on fasse. Le café rend éveillé, pas sobre.' },
     },
   },
 
@@ -447,12 +488,11 @@ export const STATIONS = [
   {
     id: 'rein', accent: '#8fa8ff', map: [40, 98],
     name: { e: 'Le rein', a: 'Le rein' },
-    sub: { e: 'La station d’épuration', a: 'Néphron · glomérule' },
+    sub: { e: 'La station d’épuration', a: 'Le régulateur' },
     fog: { color: 0x101832, density: 0.0016 },
-    ambience: { base: 58, cutoff: 520, drone: 0.13, noise: 0.24, hiss: 900 },
     intro: {
       e: 'Cette pelote de tuyaux est un <b>filtre</b>. Le sang y entre sale et en ressort propre. Tout ce qui est en trop part vers la sortie…',
-      a: 'Un <b>glomérule</b> : peloton capillaire enchâssé dans la capsule de Bowman. C’est ici que naît l’urine primitive, à raison de 180 litres par jour.',
+      a: 'Cette pelote de vaisseaux est un filtre — et vous en avez deux millions. La méthode est brutale : on laisse tout passer, puis on récupère 99 % de ce qui vient de sortir.',
     },
     card: {
       e: {
@@ -466,56 +506,61 @@ export const STATIONS = [
                 ['Toutes les 30 min', 'tout ton sang y repasse']],
       },
       a: {
-        kicker: 'Escale 8', title: 'L’organe de l’équilibre intérieur',
-        html: `<p>Chaque rein compte environ <b>un million de néphrons</b>. Le glomérule filtre le plasma sous l’effet de la pression hydrostatique : la barrière — endothélium fenestré, membrane basale, pédicelles des podocytes — retient cellules et protéines.</p>
-               <p>Le débit de filtration glomérulaire normal est de <b>120 mL/min</b>, soit près de <b>180 L par jour</b>. Le tubule en réabsorbe plus de 99 % : la totalité du glucose et des acides aminés au tube proximal, l’eau et le sodium tout au long, sous contrôle de l’ADH et de l’aldostérone.</p>
-               <p>Le rein ne fait pas qu’épurer : il règle la <em>volémie</em> et la pression artérielle (système rénine-angiotensine), l’équilibre acido-basique, la calcémie (hydroxylation de la vitamine D) et l’érythropoïèse (<b>EPO</b>).</p>`,
-        stats: [['≈ 120 mL/min', 'débit de filtration glomérulaire'],
-                ['> 99 %', 'du filtrat est réabsorbé'],
-                ['20–25 %', 'du débit cardiaque va aux reins'],
-                ['1 200 mOsm/kg', 'concentration urinaire maximale']],
+        kicker: 'Escale 8', title: 'Jeter presque tout, puis tout reprendre',
+        html: `<p>La méthode est contre-intuitive. Plutôt que d’extraire sélectivement les déchets, le rein vide brutalement une baignoire entière de plasma — <b>180 litres par jour</b> — et récupère ensuite plus de 99 % de ce qu’il vient de laisser partir.</p>
+               <p>Absurde ? Non : c’est ce qui permet de tout régler séparément. Le corps ne choisit pas ce qu’il jette, il choisit ce qu’il <b>reprend</b>. Chaque substance a son propre robinet.</p>
+               <p>Vous voyez le résultat tous les jours. Urine foncée et rare : le corps manque d’eau et la reprend presque toute. Urine claire après deux cafés : il en laisse filer.</p>
+               <p>Et le rein ne fait pas que filtrer. Il règle votre <b>tension artérielle</b> en ajustant la quantité d’eau et de sel conservée — d’où les diurétiques comme traitement de l’hypertension. Il commande la fabrication des globules rouges : les insuffisants rénaux sont anémiques, et on leur donne l’hormone que leurs reins ne produisent plus. Il active enfin la vitamine D, sans quoi le calcium n’est pas absorbé.</p>
+               <p>Un rein qui s’arrête, ce n’est donc pas un problème de propreté. C’est la tension, le sang et les os qui lâchent en même temps.</p>`,
+        stats: [['180 litres', 'filtrés chaque jour, une baignoire'],
+                ['plus de 99 %', 'récupéré aussitôt'],
+                ['1 million', 'de filtres par rein'],
+                ['20 à 25 %', 'du débit du cœur passe par les reins']],
       },
     },
     spots: {
       glomerule: {
-        label: { e: 'La pelote', a: 'Glomérule' },
+        label: { e: 'La pelote', a: 'La passoire' },
         e: { title: 'La passoire', html: `<p>Un peloton de tuyaux minuscules, percés de trous si fins que seules les <b>toutes petites choses</b> passent. Les globules et les grosses protéines restent dans le sang.</p>` },
-        a: { title: 'Glomérule', html: `<p>Capillaires à haute pression (≈ 45 mmHg) entre deux artérioles, dont le calibre règle finement la filtration. La <b>barrière</b> est à la fois mécanique et électrique : chargée négativement, elle repousse l’albumine. Son altération donne la <em>protéinurie</em>.</p>` },
+        a: { title: 'La passoire', html: `<p>Un peloton de vaisseaux maintenu sous haute pression entre deux robinets. En resserrant l’un ou l’autre, le rein règle finement son débit de filtration.</p>
+                                          <p>Le tamis retient tout ce qui est trop gros, mais pas seulement : il est chargé négativement, et repousse électriquement les protéines du sang qui le sont aussi. Quand cette charge s’abîme — diabète, hypertension —, les protéines passent. Trouver de l’albumine dans les urines est l’un des tout premiers signes d’atteinte rénale, bien avant tout symptôme.</p>` },
       },
       bowman: {
-        label: { e: 'La coupelle', a: 'Capsule de Bowman' },
+        label: { e: 'La coupelle', a: 'La coupelle' },
         e: { title: 'Le récipient', html: `<p>Tout ce qui traverse le filtre tombe dans cette coupelle, puis part dans un long tuyau. C’est le début de l’urine — mais elle est encore <b>bien trop diluée</b>.</p>` },
-        a: { title: 'Capsule de Bowman', html: `<p>Feuillet viscéral fait de <b>podocytes</b> dont les pédicelles enlacent les capillaires en ménageant des fentes de filtration de 25 nm, obturées par la <em>néphrine</em>. L’ultrafiltrat recueilli a la composition du plasma, protéines en moins.</p>` },
+        a: { title: 'La coupelle', html: `<p>Une capsule qui recueille le filtrat. Sa paroi interne est faite de cellules à pieds multiples qui enlacent les vaisseaux et ne laissent entre elles que des fentes de vingt-cinq nanomètres.</p>
+                                          <p>Ce qui tombe ici a exactement la composition de votre plasma, protéines en moins. Ce n’est pas encore de l’urine : tout le travail de récupération commence après.</p>` },
       },
       henle: {
-        label: { e: 'La boucle', a: 'Anse de Henle' },
+        label: { e: 'La boucle', a: 'L’épingle à cheveux' },
         e: { title: 'La boucle magique', html: `<p>Ce long tuyau plonge, fait demi-tour et remonte. Cette forme en épingle permet de <b>récupérer l’eau</b> — c’est pour ça que tu peux boire peu et survivre.</p>` },
-        a: { title: 'Anse de Henle', html: `<p>Moteur du <b>gradient cortico-médullaire</b> par multiplication à contre-courant : branche descendante perméable à l’eau, branche ascendante imperméable mais qui pompe activement NaCl. Sans elle, aucune concentration des urines possible ; c’est la cible des diurétiques de l’anse.</p>` },
+        a: { title: 'L’épingle à cheveux', html: `<p>Un long tuyau qui plonge, fait demi-tour et remonte, les deux branches accolées. La descendante laisse sortir l’eau, la montante pompe le sel sans laisser passer l’eau. Le sel ainsi extrait rend le tissu autour de plus en plus salé en profondeur.</p>
+                                                  <p>Cette zone très salée est ce qui vous permet, ensuite, d’aspirer l’eau hors de l’urine et de la concentrer. Sans cette boucle, impossible de survivre en buvant peu. Plus elle est longue, plus l’animal résiste à la sécheresse : celle du rat des sables est énorme.</p>` },
       },
       collecteur: {
-        label: { e: 'La sortie', a: 'Tube collecteur' },
+        label: { e: 'La sortie', a: 'Le dernier robinet' },
         e: { title: 'Le dernier réglage', html: `<p>Juste avant la sortie, le corps décide combien d’eau il garde. Si tu as soif, il en garde beaucoup : ton pipi devient <b>plus foncé</b>.</p>` },
-        a: { title: 'Tube collecteur', html: `<p>Site du réglage final. L’<b>ADH</b> y insère des aquaporines-2 : la perméabilité à l’eau devient variable, et l’osmolalité urinaire peut osciller de 50 à 1 200 mOsm/kg. L’aldostérone y ajuste réabsorption sodée et excrétion potassique.</p>` },
+        a: { title: 'Le dernier robinet', html: `<p>C’est ici que se décide la concentration finale. Une hormone commande l’insertion de canaux à eau dans la paroi : plus il y en a, plus l’eau est réabsorbée, plus l’urine est concentrée.</p>
+                                                 <p>L’alcool bloque cette hormone. D’où les allers-retours aux toilettes en soirée, et la déshydratation du lendemain matin — qui explique une bonne part du mal de tête.</p>` },
       },
     },
     quiz: {
       e: { q: 'Combien de litres tes reins filtrent-ils chaque jour ?', opts: ['180 litres', '2 litres', '20 litres'], ok: 0,
            fb: '<b>180 litres</b> filtrés… mais 99 % sont récupérés. Il ne sort qu’un litre et demi.' },
-      a: { q: 'Quelle structure crée le gradient permettant de concentrer l’urine ?', opts: ['L’anse de Henle', 'Le glomérule', 'La capsule de Bowman'], ok: 0,
-           fb: 'La <b>multiplication à contre-courant</b> dans l’anse de Henle établit le gradient cortico-médullaire exploité par le tube collecteur.' },
+      a: { q: 'Pourquoi les insuffisants rénaux sont-ils anémiques ?', opts: ['Le rein commande la fabrication des globules rouges', 'Les globules rouges sont filtrés et perdus', 'Le fer est éliminé dans les urines'], ok: 0,
+           fb: 'Le rein produit l’hormone qui ordonne à la moelle de fabriquer des globules rouges. Sans elle, la production chute — on la donne donc en traitement. C’est la même molécule que celle détournée dans le <b>dopage</b>.' },
     },
   },
 
   /* ══════════════════ 9 ══════════════════ */
   {
     id: 'charpente', accent: '#e8dcc8', map: [30, 168],
-    name: { e: 'Os et muscles', a: 'La charpente' },
-    sub: { e: 'La structure vivante', a: 'Os trabéculaire · fibre musculaire' },
+    name: { e: 'Os et muscles', a: 'Os et muscles' },
+    sub: { e: 'La structure vivante', a: 'La structure vivante' },
     fog: { color: 0x1a1410, density: 0.0013 },
-    ambience: { base: 36, cutoff: 200, drone: 0.18, noise: 0.14, hiss: 260 },
     intro: {
       e: 'On entre <b>dans un os</b>. Surprise : ce n’est pas plein ! C’est une dentelle très solide, et à l’intérieur, une usine fabrique tes globules rouges.',
-      a: 'Os spongieux : un réseau de <b>travées</b> orientées selon les contraintes. Dans les espaces, la moelle hématopoïétique ; à droite, les faisceaux musculaires.',
+      a: 'Nous sommes <b>à l’intérieur d’un os</b>. Il n’est pas plein : c’est une dentelle de poutres orientées exactement dans le sens des forces. Dans les espaces, l’usine à sang.',
     },
     card: {
       e: {
@@ -529,43 +574,50 @@ export const STATIONS = [
                 ['10 ans', 'pour renouveler tout ton squelette']],
       },
       a: {
-        kicker: 'Escale 9', title: 'Matériau composite et moteur chimique',
-        html: `<p>L’os est un <b>composite</b> : une trame de collagène I qui encaisse la traction, minéralisée d’hydroxyapatite qui encaisse la compression. L’os spongieux organise ses travées selon les lignes de contrainte — la <em>loi de Wolff</em> : la forme suit la fonction.</p>
-               <p>Il est en remodelage permanent : les <b>ostéoclastes</b> résorbent, les <b>ostéoblastes</b> reconstruisent, les ostéocytes emprisonnés détectent les contraintes et pilotent le processus. Le squelette entier se renouvelle en une dizaine d’années, et il constitue la réserve de calcium de l’organisme.</p>
-               <p>Le muscle strié squelettique, lui, convertit l’ATP en travail mécanique : les têtes de <b>myosine</b> tirent sur les filaments d’<b>actine</b> qui glissent les uns sur les autres, raccourcissant le sarcomère. Aucun muscle ne pousse — d’où les couples agoniste/antagoniste.</p>`,
-        stats: [['206', 'os chez l’adulte'],
-                ['≈ 2 µm', 'longueur d’un sarcomère au repos'],
-                ['30–40 %', 'de la masse corporelle : le muscle'],
-                ['10 ans', 'renouvellement complet du squelette']],
+        kicker: 'Escale 9', title: 'Un matériau qui se réorganise tout seul',
+        html: `<p>L’os n’est pas un caillou. C’est un composite : des fibres souples qui encaissent la traction, imprégnées d’un minéral dur qui encaisse la compression. Ni l’un ni l’autre séparément ne tiendrait — comme le béton armé.</p>
+               <p>Et il n’est pas figé. Des cellules le rongent en permanence, d’autres le reconstruisent derrière. Votre squelette est <b>intégralement remplacé en une dizaine d’années</b>.</p>
+               <p>Ce chantier permanent lui permet de s’adapter : les poutres que vous voyez s’orientent dans le sens des forces qu’elles subissent. Chargez un os, il se renforce. Cessez de vous en servir, il fond. Un astronaute perd 1 à 2 % de masse osseuse par mois en apesanteur ; un membre plâtré s’affaiblit en quelques semaines.</p>
+               <p>L’ostéoporose n’est pas un os qui « se creuse » uniformément : ce sont ces poutres qui s’amincissent puis se rompent une à une. La résistance chute bien plus vite que la masse perdue ne le laisserait croire.</p>
+               <p>À côté, le muscle. Il ne fait qu’une chose : <b>tirer</b>. Aucun muscle ne pousse. D’où le fonctionnement par paires opposées, un pour plier, un pour déplier.</p>`,
+        stats: [['206', 'os chez l’adulte, 270 à la naissance'],
+                ['10 ans', 'pour renouveler tout le squelette'],
+                ['1 à 2 %', 'de masse osseuse perdue par mois en apesanteur'],
+                ['30 à 40 %', 'du poids du corps : les muscles']],
       },
     },
     spots: {
       travee: {
-        label: { e: 'La dentelle', a: 'Travées osseuses' },
+        label: { e: 'La dentelle', a: 'Les poutres' },
         e: { title: 'Léger et costaud', html: `<p>Ces petites poutres ne sont pas placées au hasard : elles suivent exactement les directions où l’os est <b>poussé et tiré</b>. Le maximum de solidité avec le minimum de matière.</p>` },
-        a: { title: 'Travées osseuses', html: `<p>Réseau tridimensionnel dont l’orientation épouse les contraintes principales. Une ostéoporose ne « creuse » pas l’os au hasard : elle <b>amincit puis rompt</b> les travées, effondrant la résistance bien plus vite que la seule perte de masse ne le laisserait croire.</p>` },
+        a: { title: 'Les poutres', html: `<p>Elles ne sont pas disposées au hasard : elles épousent les lignes de force qui traversent l’os. Un ingénieur qui calculerait la structure la plus légère pour ces contraintes retrouverait à peu près ce dessin.</p>
+                                          <p>Sauf qu’aucun plan n’existe. Les cellules emprisonnées dans l’os détectent les micro-déformations et pilotent la reconstruction en conséquence. La forme est un <b>résultat</b>, pas une consigne — et elle se met à jour quand l’usage change.</p>` },
       },
       moelle: {
-        label: { e: 'La moelle', a: 'Moelle hématopoïétique' },
+        label: { e: 'La moelle', a: 'L’usine à sang' },
         e: { title: 'L’usine à cellules', html: `<p>Une usine qui tourne <b>jour et nuit</b> : deux millions de globules rouges fabriqués chaque seconde, plus les globules blancs et les plaquettes.</p>` },
-        a: { title: 'Moelle rouge', html: `<p>Siège de l’<b>hématopoïèse</b> : toutes les lignées sanguines dérivent d’une même cellule souche hématopoïétique. Production estimée à 2×10⁶ hématies/seconde, ajustée par l’érythropoïétine rénale. Chez l’adulte, elle se limite aux os plats et aux épiphyses.</p>` },
+        a: { title: 'L’usine à sang', html: `<p>Toutes vos cellules sanguines — rouges, blanches, plaquettes — descendent d’un même type de cellule souche, ici. Deux millions de globules rouges par seconde, ajustés en permanence par un signal venu des reins.</p>
+                                             <p>C’est cette usine que détruit une leucémie, et c’est elle qu’on remplace lors d’une greffe de moelle. Chez l’adulte elle ne subsiste que dans quelques os plats — bassin, sternum, côtes —, ce qui explique où l’on va la prélever.</p>` },
       },
       fibre: {
-        label: { e: 'La fibre', a: 'Fibre musculaire' },
+        label: { e: 'La fibre', a: 'La fibre musculaire' },
         e: { title: 'Des élastiques qui tirent', html: `<p>Chaque fibre est bourrée de fils qui <b>glissent</b> les uns sur les autres. Des millions de tout petits mouvements, tous ensemble, et le muscle raccourcit.</p>` },
-        a: { title: 'Fibre musculaire', html: `<p>Syncytium plurinucléé pouvant atteindre plusieurs centimètres. Les stries proviennent de l’alignement des <b>sarcomères</b>. La contraction suit la théorie des filaments glissants : cycles attachement-pivotement-détachement des têtes de myosine, à raison de plusieurs ATP par cycle.</p>` },
+        a: { title: 'La fibre musculaire', html: `<p>Une seule cellule, longue parfois de plusieurs centimètres et contenant des centaines de noyaux. À l’intérieur, deux jeux de filaments imbriqués.</p>
+                                                  <p>La contraction est purement mécanique : de petites têtes moléculaires s’accrochent au filament voisin, pivotent, tirent, lâchent, et recommencent. Des milliards de ces micro-mouvements en même temps, et le muscle raccourcit. Chaque cycle coûte de l’énergie — d’où la chaleur produite, et le frisson quand le corps a besoin de se réchauffer.</p>
+                                                  <p>La rigidité cadavérique vient de là : sans énergie, les têtes s’accrochent et ne peuvent plus lâcher.</p>` },
       },
       jonction: {
-        label: { e: 'Le fil du nerf', a: 'Jonction neuromusculaire' },
+        label: { e: 'Le fil du nerf', a: 'L’ordre de bouger' },
         e: { title: 'L’ordre de bouger', html: `<p>Un nerf arrive et dépose un <b>message chimique</b> sur le muscle. En quelques millièmes de seconde, la fibre se contracte. C’est ce qui se passe quand tu décides de bouger le doigt.</p>` },
-        a: { title: 'Jonction neuromusculaire', html: `<p>Synapse à très haut coefficient de sécurité : l’<b>acétylcholine</b> libérée par le motoneurone ouvre les récepteurs nicotiniques et déclenche à coup sûr un potentiel d’action musculaire. Cible des curares et de la <em>myasthénie</em>.</p>` },
+        a: { title: 'L’ordre de bouger', html: `<p>Le point où le nerf touche le muscle. Le message y devient chimique : une molécule est libérée, se fixe en face, et déclenche la contraction en quelques millièmes de seconde.</p>
+                                                 <p>Ce relais est délibérément surdimensionné — il libère bien plus que nécessaire, pour ne jamais rater. C’est aussi une cible : les curares le bloquent, ce qui permet l’anesthésie ; le botulisme empêche la libération ; et la toxine botulique injectée en ride du lion fait exactement la même chose, en très local.</p>` },
       },
     },
     quiz: {
       e: { q: 'Que fabrique la moelle à l’intérieur des os ?', opts: ['Les cellules du sang', 'Du calcium liquide', 'De la graisse uniquement'], ok: 0,
            fb: 'Exact : <b>2 millions de globules rouges par seconde</b>, plus les globules blancs et les plaquettes.' },
-      a: { q: 'Selon la loi de Wolff, l’architecture trabéculaire s’oriente selon…', opts: ['Les contraintes mécaniques', 'Le réseau vasculaire', 'L’âge du sujet'], ok: 0,
-           fb: 'Selon les <b>contraintes</b>. L’os est un tissu adaptatif : il se réorganise en fonction des charges qu’il subit.' },
+      a: { q: 'Pourquoi les astronautes perdent-ils de la masse osseuse ?', opts: ['L’os se reconstruit selon les forces qu’il subit', 'Le calcium s’évapore en apesanteur', 'Ils manquent de vitamine D'], ok: 0,
+           fb: 'L’os est un tissu <b>adaptatif</b> : sans charge, les cellules qui le rongent prennent le dessus. 1 à 2 % par mois en orbite. Le même mécanisme affaiblit un membre plâtré.' },
     },
   },
 
@@ -573,12 +625,11 @@ export const STATIONS = [
   {
     id: 'cerveau', accent: '#a98cff', map: [50, 20],
     name: { e: 'Le cerveau', a: 'Le cerveau' },
-    sub: { e: 'La forêt électrique', a: 'Réseau neuronal · synapse' },
+    sub: { e: 'La forêt électrique', a: 'La forêt électrique' },
     fog: { color: 0x0b0a22, density: 0.0011 },
-    ambience: { base: 66, cutoff: 900, drone: 0.14, noise: 0.12, hiss: 1600 },
     intro: {
       e: 'Regarde ces éclairs ! Chaque trait de lumière est une <b>pensée</b> qui passe. Nous sommes dans le cerveau, au milieu de milliards de neurones.',
-      a: 'Réseau cortical. Chaque impulsion lumineuse figure un <b>potentiel d’action</b> ; aux points de contact, les synapses convertissent l’électrique en chimique.',
+      a: 'Chaque trait lumineux qui file le long de ces branches est une impulsion électrique réelle. Il y en a en permanence, par milliards, y compris pendant votre sommeil.',
     },
     card: {
       e: {
@@ -592,43 +643,50 @@ export const STATIONS = [
                 ['1,3 kg', 'et il ne se repose jamais']],
       },
       a: {
-        kicker: 'Escale 10', title: 'Le réseau le plus dense connu',
-        html: `<p><b>86 milliards de neurones</b>, autant de cellules gliales, et de l’ordre de <b>10¹⁴ synapses</b>. Pour 2 % de la masse corporelle, le cerveau consomme 20 % de l’oxygène et du glucose — sans réserve énergétique propre, d’où sa vulnérabilité à l’ischémie.</p>
-               <p>Le <b>potentiel d’action</b> est un phénomène tout-ou-rien : dépolarisation par entrée de Na⁺, repolarisation par sortie de K⁺. Sur les axones myélinisés, la conduction est <em>saltatoire</em> — le signal saute d’un nœud de Ranvier à l’autre — et atteint 100 m/s contre moins de 1 m/s sans myéline.</p>
-               <p>À la synapse, le message devient chimique : les vésicules libèrent leur neurotransmetteur dans une fente de 20 à 40 nm. L’efficacité de ce contact se modifie avec l’usage : c’est la <b>plasticité synaptique</b>, substrat de la mémoire.</p>`,
-        stats: [['≈ 10¹⁴', 'synapses'],
-                ['0,5–120 m/s', 'vitesse de conduction selon la fibre'],
-                ['20–40 nm', 'largeur de la fente synaptique'],
-                ['1 ms', 'délai synaptique']],
+        kicker: 'Escale 10', title: 'Un kilo trois qui coûte très cher',
+        html: `<p>86 milliards de neurones, et environ cent mille milliards de connexions entre eux. Le nombre ne veut pas dire grand-chose ; ce qui compte, c’est que chaque neurone en écoute des milliers d’autres avant de décider s’il parle.</p>
+               <p>Pour 2 % de votre poids, cet organe consomme <b>20 % de votre oxygène et de votre sucre</b>. Et il ne stocke rien. Trois minutes sans sang, et les dégâts sont irréversibles : c’est toute l’urgence de l’AVC.</p>
+               <p>Le signal électrique file le long des fibres à <b>360 km/h</b> pour les plus rapides — mais il ne saute pas d’un neurone à l’autre. Il s’arrête à un espace vide, se transforme en molécules qui traversent, et redevient électrique en face. Ce passage prend un millième de seconde et coûte l’essentiel de l’énergie du cerveau.</p>
+               <p>Pourquoi cette complication ? Parce qu’un contact chimique est <b>réglable</b>. Il peut se renforcer, s’affaiblir, disparaître. Apprendre, c’est modifier ces contacts. Et c’est là qu’agissent la plupart des substances qui changent l’humeur ou la vigilance — antidépresseurs, caféine, alcool, drogues : toutes travaillent dans cet espace vide.</p>`,
+        stats: [['86 milliards', 'de neurones'],
+                ['100 000 milliards', 'de connexions'],
+                ['20 %', 'de votre énergie pour 2 % du poids'],
+                ['3 minutes', 'sans sang avant les lésions irréversibles']],
       },
     },
     spots: {
       neurone: {
-        label: { e: 'Un neurone', a: 'Neurone' },
+        label: { e: 'Un neurone', a: 'Un neurone' },
         e: { title: 'L’arbre qui pense', html: `<p>Il a des <b>branches</b> pour écouter, un corps pour décider, et un <b>long fil</b> pour transmettre. Certains de ces fils descendent jusqu’à ton pied — presque un mètre !</p>` },
-        a: { title: 'Neurone', html: `<p>Dendrites (réception), soma (intégration), axone (conduction). L’intégration est <b>spatio-temporelle</b> : le potentiel d’action ne part que si la somme des entrées franchit le seuil au cône d’émergence. Certains axones dépassent un mètre.</p>` },
+        a: { title: 'Un neurone', html: `<p>Des branches pour écouter, un corps pour additionner, un long fil pour transmettre. Le principe est celui d’un vote : le neurone reçoit des milliers de signaux, les uns qui l’encouragent, les autres qui le retiennent, et il ne parle que si le total dépasse un seuil.</p>
+                                         <p>Tout ou rien : le signal part à pleine puissance, ou pas du tout. L’intensité d’une sensation n’est donc pas codée par la force du signal mais par sa <b>fréquence</b>. Certains de ces fils descendent de la moelle jusqu’au pied — une seule cellule d’un mètre de long.</p>` },
       },
       synapse: {
-        label: { e: 'Le saut', a: 'Synapse' },
+        label: { e: 'Le saut', a: 'L’espace vide' },
         e: { title: 'Le petit saut chimique', html: `<p>Les neurones ne se touchent pas ! Il reste un espace minuscule. Pour le franchir, le message se transforme en <b>gouttelettes chimiques</b> qui traversent et vont sonner à la porte d’en face.</p>` },
-        a: { title: 'Synapse chimique', html: `<p>L’entrée de Ca²⁺ déclenche l’exocytose des vésicules ; le neurotransmetteur diffuse et se fixe sur les récepteurs post-synaptiques. Cette étape est <b>modifiable</b> — potentialisation à long terme, dépression à long terme — et coûte l’essentiel de l’énergie cérébrale.</p>` },
+        a: { title: 'L’espace vide', html: `<p>Les neurones ne se touchent pas. Un intervalle de vingt nanomètres les sépare, et le message doit s’y transformer en molécules pour passer.</p>
+                                            <p>Ce détour coûteux est ce qui rend le cerveau modifiable : un contact très utilisé se renforce, un contact inutilisé s’efface. C’est le support physique de l’apprentissage et de la mémoire.</p>
+                                            <p>C’est aussi la porte d’entrée de presque toute la pharmacologie du cerveau. La caféine y bloque un signal de fatigue ; les antidépresseurs y ralentissent le recyclage d’un messager ; la nicotine imite une molécule naturelle. Tout se joue dans cet espace.</p>` },
       },
       myeline: {
-        label: { e: 'La gaine', a: 'Myéline' },
+        label: { e: 'La gaine', a: 'La gaine isolante' },
         e: { title: 'L’accélérateur', html: `<p>Une gaine grasse entoure le fil, avec des trous réguliers. Le signal <b>saute</b> de trou en trou au lieu de ramper : il va cent fois plus vite.</p>` },
-        a: { title: 'Myéline', html: `<p>Enroulements membranaires d’oligodendrocytes isolant l’axone, interrompus aux <b>nœuds de Ranvier</b> où se concentrent les canaux sodiques. La conduction saltatoire économise énergie et espace. Sa destruction auto-immune définit la <em>sclérose en plaques</em>.</p>` },
+        a: { title: 'La gaine isolante', html: `<p>Un manchon gras enroulé autour de la fibre, interrompu à intervalles réguliers. Le signal ne rampe plus le long du fil : il <b>saute</b> d’une interruption à l’autre. Résultat, cent fois plus vite, pour moins d’énergie et moins de place.</p>
+                                                <p>C’est cette gaine que le système immunitaire attaque dans la sclérose en plaques. Les fibres restent intactes mais conduisent mal : d’où des symptômes très variés selon les fibres touchées, et évoluant par poussées.</p>
+                                                <p>Elle se met en place lentement — la maturation n’est achevée qu’à la fin de l’adolescence, en particulier à l’avant du cerveau.</p>` },
       },
       glie: {
-        label: { e: 'Les aides', a: 'Astrocytes' },
+        label: { e: 'Les aides', a: 'Les cellules de soutien' },
         e: { title: 'Les nourrices', html: `<p>Autour des neurones vivent d’autres cellules qui les <b>nourrissent</b>, font le ménage et règlent la circulation du sang là où le cerveau travaille.</p>` },
-        a: { title: 'Astrocytes', html: `<p>Ils tamponnent le K⁺ extracellulaire, recyclent le glutamate, alimentent les neurones en lactate et participent à la <b>barrière hémato-encéphalique</b>. Leurs pieds péri-vasculaires couplent activité neuronale et débit sanguin local — le signal même que mesure l’IRM fonctionnelle.</p>` },
+        a: { title: 'Les cellules de soutien', html: `<p>Aussi nombreuses que les neurones, longtemps considérées comme du simple remplissage. Elles nettoient l’espace entre les cellules, recyclent les messagers, nourrissent les neurones, et contrôlent ce qui a le droit de passer du sang vers le cerveau.</p>
+                                                      <p>Elles commandent aussi l’afflux de sang là où l’activité augmente — et c’est exactement ce que mesure une IRM fonctionnelle. Les images colorées « du cerveau qui pense » ne montrent pas des neurones : elles montrent du <b>débit sanguin</b>.</p>` },
       },
     },
     quiz: {
       e: { q: 'Comment un message passe-t-il d’un neurone à l’autre ?', opts: ['Par de petites gouttes chimiques', 'Par une étincelle qui saute', 'Ils se touchent et se collent'], ok: 0,
            fb: 'Oui ! Un espace minuscule sépare les neurones : le message le franchit sous forme <b>chimique</b>.' },
-      a: { q: 'Que permet la myélinisation d’un axone ?', opts: ['Une conduction saltatoire plus rapide', 'Une amplitude de potentiel plus grande', 'Une synthèse accrue de neurotransmetteurs'], ok: 0,
-           fb: 'La <b>conduction saltatoire</b> de nœud en nœud : jusqu’à 120 m/s, pour un coût énergétique moindre.' },
+      a: { q: 'Que montrent réellement les images colorées d’IRM fonctionnelle ?', opts: ['Des variations de débit sanguin local', 'L’activité électrique des neurones', 'La quantité de neurotransmetteurs'], ok: 0,
+           fb: 'Du <b>sang</b>, pas des neurones. Les cellules de soutien augmentent l’irrigation là où l’activité monte, et c’est ce signal indirect que l’appareil mesure — avec quelques secondes de retard.' },
     },
   },
 
@@ -636,12 +694,11 @@ export const STATIONS = [
   {
     id: 'cellule', accent: '#5fe0c8', map: [50, 140],
     name: { e: 'La cellule', a: 'La cellule et l’ADN' },
-    sub: { e: 'Le monde secret', a: 'Cytoplasme · noyau · double hélice' },
+    sub: { e: 'Le monde secret', a: 'Deux mètres dans une bille' },
     fog: { color: 0x061a1c, density: 0.0012 },
-    ambience: { base: 72, cutoff: 1100, drone: 0.12, noise: 0.1, hiss: 2000 },
     intro: {
       e: 'Dernière escale, la plus petite… et la plus incroyable. Nous entrons <b>dans une seule cellule</b>. Devant nous, son coffre-fort : le noyau.',
-      a: 'Échelle micrométrique : cytoplasme, mitochondries, réticulum. Au centre, le <b>noyau</b> et ses deux mètres d’ADN compactés dans six microns.',
+      a: 'Dernière escale, la plus petite. Nous sommes <b>dans une seule cellule</b>. Devant vous, son noyau — et les deux mètres d’ADN qui y tiennent.',
     },
     card: {
       e: {
@@ -655,43 +712,50 @@ export const STATIONS = [
                 ['99,9 %', 'd’ADN identique à celui de ton voisin']],
       },
       a: {
-        kicker: 'Escale 11', title: 'L’unité du vivant',
-        html: `<p>On estime le corps humain à <b>3×10¹³ cellules</b>, auxquelles s’ajoute un nombre comparable de bactéries. Chacune abrite le même génome, mais n’en exprime qu’une fraction : c’est la <em>différenciation</em>.</p>
-               <p>Le noyau contient <b>2 mètres d’ADN</b> répartis en 23 paires de chromosomes, compactés d’un facteur 10 000 par enroulement autour des histones. Sur 3,2 milliards de paires de bases, à peine 20 000 gènes codants — l’essentiel du génome est régulateur.</p>
-               <p>Autour, les organites : <b>mitochondries</b> issues d’une endosymbiose ancienne, avec leur ADN circulaire propre, produisant l’ATP par phosphorylation oxydative ; réticulum endoplasmique et Golgi pour la synthèse et l’adressage ; ribosomes traduisant l’ARN messager en protéines à une dizaine d’acides aminés par seconde.</p>`,
-        stats: [['≈ 3×10¹³', 'cellules'],
-                ['23 paires', 'de chromosomes'],
-                ['≈ 20 000', 'gènes codant des protéines'],
-                ['10¹⁷', 'molécules d’ATP consommées par seconde']],
+        kicker: 'Escale 11', title: 'Le même texte, lu différemment partout',
+        html: `<p>Trente mille milliards de cellules, et à peu près autant de bactéries qui vous accompagnent. Chacune de vos cellules contient <b>le même ADN</b> — le texte intégral. Un neurone et une cellule de foie ne diffèrent pas par le texte mais par les pages qu’ils lisent.</p>
+               <p>Deux mètres de fil, dans un noyau de six millièmes de millimètre. À l’échelle, c’est comme ranger quarante kilomètres de fil dans une balle de tennis — sans nœud, et en gardant chaque passage accessible à la lecture.</p>
+               <p>Sur 3,2 milliards de lettres, à peine 20 000 recettes de protéines. Presque tout le reste sert à décider <b>quand</b> et <b>où</b> lire ces recettes. C’est la partie la plus intéressante, et la moins connue.</p>
+               <p>Une dernière chose. Les centrales énergétiques de vos cellules ont leur propre ADN, différent du vôtre et plus proche de celui d’une bactérie. Ce sont les descendantes d’un organisme libre avalé sans être digéré il y a un milliard et demi d’années. Vous les tenez <b>toutes de votre mère</b> : le spermatozoïde n’en transmet aucune.</p>`,
+        stats: [['30 000 milliards', 'de cellules'],
+                ['2 mètres', 'd’ADN dans chaque noyau'],
+                ['20 000', 'gènes seulement, sur 3,2 milliards de lettres'],
+                ['1,5 milliard d’années', 'depuis l’absorption des mitochondries']],
       },
     },
     spots: {
       noyau: {
-        label: { e: 'Le coffre-fort', a: 'Noyau' },
+        label: { e: 'Le coffre-fort', a: 'Le noyau' },
         e: { title: 'La bibliothèque', html: `<p>Le noyau protège le plan de fabrication. Rien n’en sort directement : la cellule en fait des <b>photocopies</b> qu’elle envoie travailler dehors.</p>` },
-        a: { title: 'Noyau', html: `<p>Délimité par une double membrane percée de <b>pores nucléaires</b> assurant un transport sélectif. Le nucléole y assemble les ribosomes. La séparation transcription/traduction, propre aux eucaryotes, autorise la <em>maturation des ARN</em> et l’épissage alternatif.</p>` },
+        a: { title: 'Le noyau', html: `<p>Une double membrane percée de milliers de portes qui trient ce qui entre et ce qui sort. L’original ne sort jamais : la cellule en fait des copies de travail, qu’elle envoie aux ateliers.</p>
+                                       <p>Ce détour n’est pas une perte de temps. Entre la copie et son utilisation, la cellule peut découper et recoller les morceaux dans différents ordres — et fabriquer plusieurs protéines différentes à partir d’un seul gène. C’est en grande partie pourquoi 20 000 gènes suffisent à faire un être humain.</p>` },
       },
       adn: {
-        label: { e: 'L’ADN', a: 'Double hélice' },
+        label: { e: 'L’ADN', a: 'La double hélice' },
         e: { title: 'L’échelle en spirale', html: `<p>Une échelle tordue dont les barreaux ne se combinent que par paires : <b>A avec T</b>, <b>C avec G</b>. Toujours. C’est ce qui permet de la copier sans erreur.</p>` },
-        a: { title: 'ADN', html: `<p>Double hélice antiparallèle, un tour par 10,5 paires de bases. La complémentarité A–T / C–G rend chaque brin <b>matrice</b> de l’autre : la réplication est semi-conservative, avec un taux d’erreur résiduel d’environ 10⁻⁹ après relecture et réparation.</p>` },
+        a: { title: 'La double hélice', html: `<p>Deux brins enroulés, dont les barreaux ne s’assemblent que par paires fixes : A avec T, C avec G. Toujours.</p>
+                                               <p>Cette contrainte est toute l’astuce. Chaque brin contient l’information nécessaire pour reconstruire l’autre : il suffit d’ouvrir la fermeture éclair et de compléter. C’est pour cela que la molécule se copie, et donc que l’hérédité existe.</p>
+                                               <p>Le taux d’erreur final est d’environ une sur un milliard, après plusieurs étapes de relecture. Les erreurs qui passent sont à la fois la cause des cancers et le moteur de l’évolution.</p>` },
       },
       mito: {
-        label: { e: 'Les centrales', a: 'Mitochondries' },
+        label: { e: 'Les centrales', a: 'Les centrales' },
         e: { title: 'Les piles de la cellule', html: `<p>Ces haricots fabriquent l’<b>énergie</b>. Plus une cellule travaille, plus elle en contient : une cellule de cœur en est bourrée.</p>` },
-        a: { title: 'Mitochondrie', html: `<p>Organite à double membrane, la membrane interne repliée en <b>crêtes</b> qui portent la chaîne respiratoire. Elle possède son propre ADN circulaire, de <em>transmission strictement maternelle</em> — trace de son origine bactérienne.</p>` },
+        a: { title: 'Les centrales', html: `<p>Elles produisent la molécule qui alimente tout le reste. Vous en consommez et en régénérez l’équivalent de votre propre poids chaque jour — le stock ne dure que quelques secondes.</p>
+                                            <p>Leur nombre suit la demande : quelques dizaines dans une cellule de peau, plusieurs milliers dans une cellule de cœur.</p>
+                                            <p>Et elles ont leur propre ADN, circulaire, hérité uniquement de votre mère. C’est ce qui permet de remonter les lignées maternelles sur des dizaines de milliers d’années.</p>` },
       },
       ribosome: {
-        label: { e: 'Les ateliers', a: 'Ribosomes' },
+        label: { e: 'Les ateliers', a: 'Les ateliers' },
         e: { title: 'Les assembleurs', html: `<p>Ils lisent la photocopie du plan et assemblent les <b>protéines</b>, morceau par morceau, comme on enfile des perles — plusieurs par seconde.</p>` },
-        a: { title: 'Ribosome', html: `<p>Complexe ribonucléoprotéique lisant l’ARNm codon par codon et catalysant la liaison peptidique. Vitesse : ~10 acides aminés/s. Sa spécificité bactérienne en fait la cible de nombreux <b>antibiotiques</b> — macrolides, aminosides, cyclines.</p>` },
+        a: { title: 'Les ateliers', html: `<p>Ils lisent la copie de travail trois lettres à la fois et enfilent l’acide aminé correspondant. Une dizaine par seconde, sans interruption.</p>
+                                           <p>Ceux des bactéries sont construits différemment des vôtres. C’est précisément cette différence qu’exploitent de nombreux <b>antibiotiques</b> : ils bloquent l’atelier bactérien sans toucher au vôtre. Toute l’antibiothérapie repose sur des écarts de ce genre.</p>` },
       },
     },
     quiz: {
       e: { q: 'Quelle longueur d’ADN se cache dans une seule de tes cellules ?', opts: ['Environ 2 mètres', 'Environ 2 millimètres', 'Environ 2 kilomètres'], ok: 0,
            fb: '<b>Deux mètres</b>, pliés dans un noyau de quelques millièmes de millimètre. Un chef-d’œuvre de rangement.' },
-      a: { q: 'Pourquoi l’ADN mitochondrial est-il de transmission maternelle ?', opts: ['Les mitochondries de l’ovocyte sont seules conservées', 'Il est porté par le chromosome X', 'Il est recopié depuis l’ADN nucléaire'], ok: 0,
-           fb: 'Les mitochondries paternelles sont éliminées après la fécondation : seul le stock <b>ovocytaire</b> persiste.' },
+      a: { q: 'Comment 20 000 gènes suffisent-ils à fabriquer un être humain ?', opts: ['Un gène peut donner plusieurs protéines différentes', 'Chaque gène est très long', 'Les gènes se dupliquent en permanence'], ok: 0,
+           fb: 'La copie de travail est <b>découpée et recollée</b> dans différents ordres selon les besoins : un même gène peut produire des dizaines de protéines. L’essentiel du génome ne code rien — il régule.' },
     },
   },
 ];
@@ -708,8 +772,8 @@ export const FINALE = {
   },
   a: {
     title: 'Fin du parcours',
-    html: `<p>Onze escales, de la barrière cornée à la double hélice : six ordres de grandeur parcourus, du mètre au nanomètre.</p>
-           <p>Le plus remarquable n’est pas chaque organe pris isolément, mais leur <b>couplage</b> — un rein qui règle la pression, une moelle qui répond à un signal rénal, un foie qui alimente un cerveau incapable de stocker son carburant.</p>
-           <p>Un état stationnaire maintenu à chaque instant, sans commande centrale et sans interruption.</p>`,
+    html: `<p>Onze escales, de la peau à l’ADN : du mètre au nanomètre, six ordres de grandeur.</p>
+           <p>Le plus frappant n’est pas chaque organe pris à part, mais la façon dont ils se tiennent. Le rein règle la tension et commande à la moelle de fabriquer des globules ; la moelle alimente les poumons en transporteurs ; les poumons alimentent un cerveau incapable de stocker son carburant ; le foie tient ce cerveau en vie entre deux repas.</p>
+           <p>Personne ne dirige. Il n’y a pas de chef d’orchestre, pas de plan central — seulement des boucles de régulation qui se corrigent les unes les autres, en permanence, depuis le jour de votre naissance.</p>`,
   },
 };

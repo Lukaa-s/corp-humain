@@ -52,7 +52,6 @@ export default function foie(q = 1) {
   const cells = new THREE.Mesh(mergeGeometries(cellGeos), tissue({
     side: THREE.FrontSide, deep: 0x360b06, mid: 0xb84c30, hot: 0xffbe80,
     noiseScale: 0.05, displace: 1.6, bumpScale: 0.5, bumpAmp: 0.3, normalMix: 0.22,
-    key: 0.34, keyDir: new THREE.Vector3(0.2, 1, 0.15), keyColor: 0xff9a60,
     rim: 0.7, wet: 0.5, shiny: 26, falloff: 0.00001, ambient: 0.24,
   }));
   cellGeos.forEach(g => g.dispose());
@@ -97,7 +96,6 @@ export default function foie(q = 1) {
   }
   const triads = new THREE.Mesh(mergeGeometries(triadGeos), tissue({
     side: THREE.DoubleSide, deep: 0x2a0a1c, mid: 0x8e3a5c, hot: 0xffa0b8,
-    key: 0.3, keyDir: new THREE.Vector3(0.2, 1, 0.15), keyColor: 0xff9a60,
     noiseScale: 0.04, displace: 2.5, bumpScale: 0.4, bumpAmp: 0.3, normalMix: 0.4,
     rim: 0.8, wet: 0.5, shiny: 26, falloff: 0.00004, ambient: 0.18,
   }));
@@ -131,7 +129,9 @@ export default function foie(q = 1) {
 
   /* ── le motif se répète : six voisins dans la brume ── */
   const D = (R_OUT + 32) * 1.74;
-  const NEIGH = q >= 0.8 ? 5 : 3;
+  // Trois voisins suffisent à faire comprendre que le motif se répète ; six
+  // triplaient la charge géométrique pour des lobules noyés dans la brume.
+  const NEIGH = q >= 0.8 ? 3 : 2;
   for (let i = 0; i < NEIGH; i++) {
     const a = (i / 6) * Math.PI * 2;
     const c = lobule.clone();
@@ -173,6 +173,12 @@ export default function foie(q = 1) {
     group, path, spots, spotFar: 720,
     speed: 0.0078, freeSpeed: 110, lookAhead: 0.02, fov: 76, shake: 0.3,
     bounds: { type: 'sphere', center: new THREE.Vector3(200, 0, 150), radius: 900 },
+    // grenat profond, usine chimique
+    light: {
+      key:  { dir: [0.2, 1, 0.15], color: 0xffa060, int: 0.42 },
+      fill: { dir: [-0.6, -0.3, -0.5], color: 0x5a1030, int: 0.2 },
+      sky:  { top: 0x7a2418, bot: 0x1a0408, int: 0.18 },
+    },
     grade: { bloom: 0.66, tint: [1.08, 0.98, 0.9], vig: 0.6, exposure: 1.0 },
     update(t, dt, pulse, breath, cam) { if (cam) dust.position.copy(cam.position); },
   };

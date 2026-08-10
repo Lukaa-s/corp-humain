@@ -37,7 +37,6 @@ export default function rein(q = 1) {
     side: THREE.FrontSide, deep: 0x330d28, mid: 0xcc4260, hot: 0xffa8bc,
     noiseScale: 0.05, displace: 1.6, pulseAmp: 0.5,
     bumpScale: 0.5, bumpAmp: 0.35, normalMix: 0.4,
-    key: 0.34, keyDir: new THREE.Vector3(0.2, 1, 0.2), keyColor: 0x9fc0ff,
     rim: 0.95, wet: 0.4, shiny: 26, falloff: 0.000007, ambient: 0.36, light: 1.85,
   }));
   loopGeos.forEach(g => g.dispose());
@@ -117,7 +116,6 @@ export default function rein(q = 1) {
     side: THREE.BackSide, deep: 0x141c3c, mid: 0x5878b8, hot: 0xd4ecff,
     noiseScale: 0.035, displace: 3.5, pulseAmp: 0.15,
     bumpScale: 0.5, bumpAmp: 0.42, normalMix: 0.5,
-    key: 0.22, keyDir: new THREE.Vector3(0.2, 1, 0.2), keyColor: 0x9fc0ff,
     rim: 0.7, wet: 0.5, shiny: 28, falloff: 0.00012, ambient: 0.24, light: 1.35,
     vein: true, veinAmt: 0.3, veinScale: 0.1,
   }));
@@ -164,6 +162,12 @@ export default function rein(q = 1) {
     focus: { point: new THREE.Vector3(0, 0, 0), from: 0.06, to: 0.42, fade: 0.1 },
     speed: 0.0072, freeSpeed: 110, lookAhead: 0.012, fov: 72, shake: 0.35,
     bounds: { type: 'sphere', center: new THREE.Vector3(0, -300, 60), radius: 1100 },
+    // lumière froide et propre de salle blanche
+    light: {
+      key:  { dir: [0.2, 1, 0.2], color: 0xbcd8ff, int: 0.5 },
+      fill: { dir: [-0.4, -0.6, -0.5], color: 0x2050a0, int: 0.26 },
+      sky:  { top: 0x90b0ff, bot: 0x101a30, int: 0.24 },
+    },
     grade: { bloom: 0.72, tint: [0.95, 0.99, 1.08], vig: 0.55, exposure: 1.06 },
     update(t, dt, pulse, breath, cam) {
       if (cam) filtrate.position.copy(cam.position);

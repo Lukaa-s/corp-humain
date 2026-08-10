@@ -9,6 +9,11 @@ import { makeChannel, blob, biconcaveGeometry, rng, mergeGeometries, clamp, lerp
  */
 export default function coeur() {
   const group = new THREE.Group();
+  // Tout ce qui est muscle vit dans ce sous-groupe : il se resserre pour de
+  // bon à chaque battement. Sans cette contraction d'ensemble, on voyait une
+  // grotte qui frémit, pas une pompe qui pousse.
+  const muscle = new THREE.Group();
+  group.add(muscle);
   const rnd = rng(303);
   const VALVE_Z = 150, Ra = 108;
 
@@ -23,11 +28,10 @@ export default function coeur() {
     deep: 0x3c0810, mid: 0xbe2431, hot: 0xff8878,
     noiseScale: 0.02, displace: 9, pulseAmp: 0.9,
     bumpScale: 0.28, bumpAmp: 0.5, normalMix: 0.42,
-    key: 0.34, keyDir: new THREE.Vector3(0.25, 1, -0.35), keyColor: 0xff6a52,
     rim: 0.6, wet: 0.45, shiny: 26, falloff: 0.000015, ambient: 0.24, light: 1.5, emissive: 0x1a0206,
     vein: true, veinAmt: 0.5, veinScale: 0.05,
   }));
-  group.add(wall);
+  muscle.add(wall);
 
   /* ── trabécules charnues ── */
   const trab = [];
@@ -46,10 +50,10 @@ export default function coeur() {
   const trabMesh = new THREE.Mesh(mergeGeometries(trab), tissue({
     side: THREE.DoubleSide, deep: 0x400a16, mid: 0xc23448, hot: 0xffa08e,
     noiseScale: 0.05, displace: 2, pulseAmp: 0.6, bumpScale: 0.4, bumpAmp: 0.3,
-    normalMix: 0.28, key: 0.3, keyDir: new THREE.Vector3(0.25, 1, -0.35), keyColor: 0xff6a52, rim: 0.75, wet: 0.45, shiny: 28, falloff: 0.00004, ambient: 0.2,
+    normalMix: 0.28, rim: 0.75, wet: 0.45, shiny: 28, falloff: 0.00004, ambient: 0.2,
   }));
   trab.forEach(g => g.dispose());
-  group.add(trabMesh);
+  muscle.add(trabMesh);
 
   /* ── piliers ── */
   const papGeos = [];
@@ -74,10 +78,10 @@ export default function coeur() {
   const pap = new THREE.Mesh(mergeGeometries(papGeos), tissue({
     side: THREE.DoubleSide, deep: 0x3c0812, mid: 0xba2a3c, hot: 0xff9080,
     noiseScale: 0.03, displace: 5, pulseAmp: 0.8, bumpScale: 0.3, bumpAmp: 0.45,
-    normalMix: 0.24, key: 0.3, keyDir: new THREE.Vector3(0.25, 1, -0.35), keyColor: 0xff6a52, rim: 0.6, wet: 0.45, shiny: 24, falloff: 0.00004, ambient: 0.2,
+    normalMix: 0.24, rim: 0.6, wet: 0.45, shiny: 24, falloff: 0.00004, ambient: 0.2,
   }));
   papGeos.forEach(g => g.dispose());
-  group.add(pap);
+  muscle.add(pap);
 
   /* ── feuillets mitraux (géométrie recalculée à chaque image) ── */
   const SS = 34, VV = 13;
@@ -221,6 +225,12 @@ export default function coeur() {
     focus: { point: new THREE.Vector3(0, 0, VALVE_Z + 30), from: 0.60, to: 0.90, fade: 0.12 },
     speed: 0.0088, freeSpeed: 90, lookAhead: 0.016, fov: 76, shake: 1.0,
     bounds: { type: 'sphere', center: new THREE.Vector3(0, 0, 0), radius: 265 },
+    // nef : une seule source haute, ombres franches
+    light: {
+      key:  { dir: [0.25, 1, -0.35], color: 0xff7a55, int: 0.62 },
+      fill: { dir: [-0.6, -0.4, 0.5], color: 0x401020, int: 0.14 },
+      sky:  { top: 0x7a1420, bot: 0x10000a, int: 0.16 },
+    },
     grade: { bloom: 0.7, tint: [1.08, 0.95, 0.95], vig: 0.62, exposure: 1.02 },
     update(t, dt, pulse, breath, cam) {
       // ouverture : systole + écartement de courtoisie au passage de la sonde
@@ -234,6 +244,10 @@ export default function coeur() {
       updateCords();
       cords.material.opacity = 0.35 + 0.3 * (1 - openS);
 
+      // la chambre se resserre franchement de 7 % à chaque coup — c'est ce
+      // qu'on ressent quand les parois se rapprochent autour de la sonde
+      const k = 1 - pulse * 0.07;
+      muscle.scale.set(k, k, 1 - pulse * 0.045);
     },
   };
 }

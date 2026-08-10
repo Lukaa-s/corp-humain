@@ -3,50 +3,53 @@ import { clamp, lerp } from './build.js';
 
 const DEG = Math.PI / 180;
 const smoothstep01 = (t) => { t = clamp(t, 0, 1); return t * t * (3 - 2 * t); };
+/** Ramène un angle cible à moins d'un demi-tour de l'angle courant. */
+const near = (target, current) => {
+  while (target - current > Math.PI) target -= Math.PI * 2;
+  while (target - current < -Math.PI) target += Math.PI * 2;
+  return target;
+};
 
 /**
- * Pilotage de la sonde.
- *  · mode « guide » : la caméra suit le rail de l'escale, le visiteur garde
- *    la liberté de tourner la tête (l'écart revient doucement à zéro) ;
- *  · mode « libre » : vol six axes, contenu dans les limites de l'escale.
+ * Pilotage de la sonde — vol libre, six axes, contenu dans les limites de
+ * l'escale. Il n'y a plus de rail : le seul déplacement automatique est le
+ * « voyage », qui emmène la sonde devant un point précis quand on le demande
+ * (clic sur un repère, bouton d'une mission). Toute commande l'interrompt.
  */
 export class Rig {
   constructor(camera, dom) {
     this.cam = camera;
     this.dom = dom;
-    this.mode = 'guide';
 
     this.pos = new THREE.Vector3();
     this.vel = new THREE.Vector3();
     this.yaw = 0; this.pitch = 0;
-    this.offYaw = 0; this.offPitch = 0;      // écart libre en mode guidé
     this.tYaw = 0; this.tPitch = 0;
 
-    this.u = 0;                               // avancement sur le rail
-    this.speed = 0.02;
-    this.paused = false;
-    this.path = null;
+    this.frozen = false;                      // fiche ouverte : on rend la main
     this.bounds = null;
-    this.focus = null;                        // sujet que la sonde garde dans l'axe
     this.freeSpeed = 26;
-    this.lookAhead = 0.012;
-    this.blend = 1;                           // 1 = collé au rail
     this.fov = 68; this.fovTarget = 68;
     this.shake = 0;
     this.roll = 0; this.rollTarget = 0;
+    this.travel = null;
+    this.onArrive = null;
 
     this.keys = new Set();
     this.drag = null;
     this.stick = { x: 0, y: 0, active: false };
     this.locked = false;
     this._boost = 0;
+    this.moving = false;
+    this.speedScale = 1;
 
     this._q = new THREE.Quaternion();
-    this._qRail = new THREE.Quaternion();
-    this._m = new THREE.Matrix4();
     this._p = new THREE.Vector3();
     this._p2 = new THREE.Vector3();
     this._up = new THREE.Vector3(0, 1, 0);
+    this._f = new THREE.Vector3();
+    this._r = new THREE.Vector3();
+    this._acc = new THREE.Vector3();
 
     this._bind();
   }
@@ -64,16 +67,18 @@ export class Rig {
     addEventListener('blur', () => this.keys.clear());
 
     d.addEventListener('pointerdown', (e) => {
-      if (e.button !== 0) return;
+      if (e.button !== 0 || this.frozen) return;
       this.drag = { x: e.clientX, y: e.clientY, id: e.pointerId, moved: 0 };
       d.setPointerCapture(e.pointerId);
     });
     d.addEventListener('pointermove', (e) => {
+      if (this.frozen) return;
       if (this.locked) { this._look(e.movementX, e.movementY, 0.0022); return; }
       if (!this.drag || e.pointerId !== this.drag.id) return;
       const dx = e.clientX - this.drag.x, dy = e.clientY - this.drag.y;
       this.drag.x = e.clientX; this.drag.y = e.clientY;
       this.drag.moved += Math.abs(dx) + Math.abs(dy);
+      if (this.drag.moved > 6) this.travel = null;
       this._look(dx, dy, 0.0034);
     });
     const end = (e) => {
@@ -96,80 +101,75 @@ export class Rig {
     });
   }
 
-  requestLock() { if (!this.locked && this.dom.requestPointerLock) this.dom.requestPointerLock(); }
+  requestLock() { if (!this.locked && !this.frozen && this.dom.requestPointerLock) this.dom.requestPointerLock(); }
   releaseLock() { if (this.locked) document.exitPointerLock(); }
 
   _look(dx, dy, k) {
-    if (this.mode === 'libre') {
-      this.tYaw -= dx * k;
-      this.tPitch = clamp(this.tPitch - dy * k, -85 * DEG, 85 * DEG);
-    } else {
-      this.offYaw = clamp(this.offYaw - dx * k, -110 * DEG, 110 * DEG);
-      this.offPitch = clamp(this.offPitch - dy * k, -68 * DEG, 68 * DEG);
-    }
+    this.tYaw -= dx * k;
+    this.tPitch = clamp(this.tPitch - dy * k, -85 * DEG, 85 * DEG);
   }
 
   /* ─────────── escales ─────────── */
-  setStation(st, { keepView = false } = {}) {
-    this.path = st.path || null;
+  setStation(st) {
     this.bounds = st.bounds || null;
-    this.focus = st.focus || null;
-    this.speed = st.speed ?? 0.018;
     this.freeSpeed = st.freeSpeed ?? 26;
-    this.lookAhead = st.lookAhead ?? 0.012;
-    this.u = st.startU ?? 0;
-    this.blend = 1;
-    this.offYaw = this.offPitch = 0;
-    this.rollTarget = 0;
     this.fovTarget = st.fov ?? 68;
-    if (!keepView && this.path) {
-      this.path.getPointAt(clamp(this.u, 0, 1), this.pos);
-      const ahead = this.path.getPointAt(clamp(this.u + this.lookAhead, 0, 1), this._p);
-      const dir = ahead.clone().sub(this.pos).normalize();
+    this.rollTarget = 0;
+    this.travel = null;
+    this.vel.set(0, 0, 0);
+
+    // point de départ : le début du parcours de l'escale, tourné vers la suite
+    const path = st.path;
+    if (path) {
+      path.getPointAt(0, this.pos);
+      const ahead = path.getPointAt(0.03, this._p);
+      const dir = ahead.sub(this.pos).normalize();
       this.yaw = this.tYaw = Math.atan2(-dir.x, -dir.z);
       this.pitch = this.tPitch = Math.asin(clamp(dir.y, -1, 1));
+    } else {
+      this.pos.set(0, 0, 0);
+      this.yaw = this.tYaw = 0; this.pitch = this.tPitch = 0;
     }
+  }
+
+  /**
+   * Emmène la sonde devant un point. On l'approche depuis le côté où elle se
+   * trouve déjà : c'est le trajet qui a le moins de chances de traverser une
+   * paroi. Toute commande de vol annule le voyage.
+   */
+  travelTo(target, { dist = 90, ms = 1800, onArrive = null } = {}) {
+    const away = this._p.subVectors(this.pos, target);
+    const d = away.length();
+    if (d < 1e-3) away.set(0, 0.15, 1); else away.multiplyScalar(1 / d);
+    const dest = target.clone().addScaledVector(away, Math.max(dist, 8));
+    this.travel = {
+      from: this.pos.clone(), to: dest, look: target.clone(),
+      t: 0, dur: Math.max(0.4, ms / 1000),
+    };
+    this.onArrive = onArrive;
     this.vel.set(0, 0, 0);
   }
 
-  setMode(m) {
-    if (m === this.mode) return;
-    if (m === 'libre') {
-      this.tYaw = this.yaw; this.tPitch = this.pitch;
-      this.vel.set(0, 0, 0);
-    } else {
-      this.blend = 0;                              // retour progressif sur le rail
-      this.offYaw = 0; this.offPitch = 0;
-      if (this.path) this.u = this._nearestU(this.pos);
-      this.releaseLock();
-    }
-    this.mode = m;
-  }
-
-  _nearestU(p) {
-    if (!this.path) return 0;
-    let best = 0, bd = Infinity;
-    for (let i = 0; i <= 120; i++) {
-      const u = i / 120;
-      const d = this.path.getPointAt(u, this._p2).distanceToSquared(p);
-      if (d < bd) { bd = d; best = u; }
-    }
-    return best;
-  }
+  cancelTravel() { this.travel = null; this.onArrive = null; }
 
   /* ─────────── boucle ─────────── */
   update(dt, pulse = 0) {
-    const k = this.keys;
-    const fwd = (k.has('KeyW') || k.has('KeyZ') || k.has('ArrowUp')) ? 1 : (k.has('KeyS') || k.has('ArrowDown')) ? -1 : 0;
-    const str = (k.has('KeyD') || k.has('ArrowRight')) ? 1 : (k.has('KeyA') || k.has('KeyQ') || k.has('ArrowLeft')) ? -1 : 0;
-    const vert = (k.has('ShiftLeft') || k.has('ShiftRight')) ? 1 : (k.has('ControlLeft') || k.has('ControlRight')) ? -1 : 0;
-    const sx = this.stick.active ? this.stick.x : 0;
-    const sy = this.stick.active ? -this.stick.y : 0;
+    const k = this.frozen ? null : this.keys;
+    const has = (c) => !!k && k.has(c);
+    const fwd = (has('KeyW') || has('KeyZ') || has('ArrowUp')) ? 1 : (has('KeyS') || has('ArrowDown')) ? -1 : 0;
+    const str = (has('KeyD') || has('ArrowRight')) ? 1 : (has('KeyA') || has('KeyQ') || has('ArrowLeft')) ? -1 : 0;
+    const vert = (has('ShiftLeft') || has('ShiftRight') || has('Space')) ? 1
+      : (has('ControlLeft') || has('ControlRight')) ? -1 : 0;
+    const sx = (!this.frozen && this.stick.active) ? this.stick.x : 0;
+    const sy = (!this.frozen && this.stick.active) ? -this.stick.y : 0;
     const mx = clamp(str + sx, -1, 1), mz = clamp(fwd + sy, -1, 1);
     const moving = Math.abs(mx) > 0.02 || Math.abs(mz) > 0.02 || vert !== 0;
+    this.moving = moving;
 
-    if (this.mode === 'libre') this._free(dt, mx, mz, vert, moving);
-    else this._guided(dt, mz, mx, moving);
+    if (moving) this.travel = null;
+
+    if (this.travel) this._travel(dt);
+    else this._free(dt, mx, mz, vert, moving);
 
     // orientation lissée
     const s = 1 - Math.pow(0.0016, dt);
@@ -183,7 +183,7 @@ export class Rig {
 
     // micro-mouvement : respiration du pilote + secousse au battement
     const t = performance.now() * 0.001;
-    const amp = (this.mode === 'guide' ? 1 : 0.45) * (1 + this.shake * 3);
+    const amp = 0.5 * (1 + this.shake * 3);
     this.cam.rotateX(Math.sin(t * 0.83) * 0.0028 * amp + pulse * 0.006 * this.shake);
     this.cam.rotateY(Math.sin(t * 0.61 + 1.3) * 0.0034 * amp);
     this.cam.rotateZ(Math.sin(t * 0.47 + 2.1) * 0.0022 * amp);
@@ -196,63 +196,35 @@ export class Rig {
     this.cam.updateProjectionMatrix();
   }
 
-  _guided(dt, mz, mx, moving) {
-    if (!this.path) return;
-    // la molette de déplacement module la vitesse d'avance
-    const boost = 1 + Math.max(0, mz) * 1.6 + Math.min(0, mz) * 0.9;
-    if (!this.paused) this.u += this.speed * dt * boost;
-    if (this.u > 1) { this.u = 1; if (this.onEnd) this.onEnd(); }
-    this.u = clamp(this.u, 0, 1);
-
-    this.path.getPointAt(this.u, this._p);
-    this.blend = Math.min(1, this.blend + dt * 0.7);
-    this.pos.lerp(this._p, this.blend >= 1 ? 1 : 1 - Math.pow(0.02, dt));
-
-    const ahead = this.path.getPointAt(clamp(this.u + this.lookAhead, 0, 1), this._p2);
-    const dir = ahead.sub(this._p).normalize();
-    let railYaw = Math.atan2(-dir.x, -dir.z);
-    let railPitch = Math.asin(clamp(dir.y, -1, 1));
-
-    // fenêtre de contemplation : la caméra se tourne vers un sujet précis
-    const f = this.focus;
-    if (f) {
-      const fade = f.fade ?? 0.14;
-      const w = Math.min(smoothstep01((this.u - f.from) / fade), smoothstep01((f.to - this.u) / fade));
-      if (w > 0.002) {
-        const d = this._p2.subVectors(f.point, this.pos).normalize();
-        let fy = Math.atan2(-d.x, -d.z);
-        while (fy - railYaw > Math.PI) fy -= Math.PI * 2;
-        while (fy - railYaw < -Math.PI) fy += Math.PI * 2;
-        railYaw = lerp(railYaw, fy, w);
-        railPitch = lerp(railPitch, Math.asin(clamp(d.y, -1, 1)), w);
-      }
+  _travel(dt) {
+    const tr = this.travel;
+    tr.t += dt;
+    const k = smoothstep01(tr.t / tr.dur);
+    this.pos.lerpVectors(tr.from, tr.to, k);
+    const d = this._p.subVectors(tr.look, this.pos);
+    if (d.lengthSq() > 1e-4) {
+      d.normalize();
+      this.tYaw = near(Math.atan2(-d.x, -d.z), this.tYaw);
+      this.tPitch = clamp(Math.asin(clamp(d.y, -1, 1)), -85 * DEG, 85 * DEG);
     }
-
-    // l'écart de regard revient au centre quand on lâche la souris
-    if (!this.drag && !this.locked) {
-      const back = 1 - Math.pow(0.28, dt);
-      this.offYaw = lerp(this.offYaw, 0, back);
-      this.offPitch = lerp(this.offPitch, 0, back);
+    this.rollTarget = 0;
+    if (tr.t >= tr.dur) {
+      this.travel = null;
+      const cb = this.onArrive; this.onArrive = null;
+      if (cb) cb();
     }
-    // on ne cumule pas les tours : recale le lacet cible près du courant
-    let ty = railYaw + this.offYaw;
-    while (ty - this.tYaw > Math.PI) ty -= Math.PI * 2;
-    while (ty - this.tYaw < -Math.PI) ty += Math.PI * 2;
-    this.tYaw = ty;
-    this.tPitch = clamp(railPitch + this.offPitch, -80 * DEG, 80 * DEG);
-    this.rollTarget = -mx * 0.06;
   }
 
   _free(dt, mx, mz, vert, moving) {
     this._boost = moving ? Math.min(1, this._boost + dt * 0.5) : 0;
-    const sp = this.freeSpeed * (1 + this._boost * 0.9);
-    const f = new THREE.Vector3(0, 0, -1).applyQuaternion(this.cam.quaternion);
-    const r = new THREE.Vector3(1, 0, 0).applyQuaternion(this.cam.quaternion);
-    const acc = new THREE.Vector3()
-      .addScaledVector(f, mz * sp)
-      .addScaledVector(r, mx * sp * 0.8)
+    const sp = this.freeSpeed * this.speedScale * (1 + this._boost * 0.9);
+    this._f.set(0, 0, -1).applyQuaternion(this.cam.quaternion);
+    this._r.set(1, 0, 0).applyQuaternion(this.cam.quaternion);
+    this._acc.set(0, 0, 0)
+      .addScaledVector(this._f, mz * sp)
+      .addScaledVector(this._r, mx * sp * 0.8)
       .addScaledVector(this._up, vert * sp * 0.7);
-    this.vel.lerp(acc, 1 - Math.pow(0.0009, dt));
+    this.vel.lerp(this._acc, 1 - Math.pow(0.0009, dt));
     this.pos.addScaledVector(this.vel, dt);
     this._contain(dt);
     this.rollTarget = -mx * 0.09;
@@ -267,7 +239,7 @@ export class Rig {
       const z = clamp(this.pos.z, b.z0, b.z1);
       b.channel.center(z, this._p);
       const d = this._p2.subVectors(this.pos, this._p);
-      const along = d.z; d.z = 0;
+      d.z = 0;
       const rad = d.length();
       const maxR = (b.radius ?? 10) * 0.88;
       if (rad > maxR) {
@@ -277,7 +249,6 @@ export class Rig {
       }
       if (this.pos.z < b.z0) { this.pos.z = lerp(this.pos.z, b.z0, push); this.vel.z *= 0.8; }
       if (this.pos.z > b.z1) { this.pos.z = lerp(this.pos.z, b.z1, push); this.vel.z *= 0.8; }
-      void along;
     } else {
       const c = b.center ?? new THREE.Vector3();
       const d = this._p2.subVectors(this.pos, c);

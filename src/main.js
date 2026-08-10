@@ -4,9 +4,11 @@ import { U } from './core/mat.js';
 import { Rig } from './core/rig.js';
 import { Sound } from './core/audio.js';
 import { UI } from './core/ui.js';
+import { Game } from './core/game.js';
 import { STATIONS, t } from './content/stations.js';
+import { MISSIONS } from './content/missions.js';
 import { WORLDS } from './world/index.js';
-import { disposeTree, clamp, lerp } from './core/build.js';
+import { disposeTree, clamp } from './core/build.js';
 
 /* ─────────────── contexte ─────────────── */
 const canvas = document.getElementById('scene');
@@ -37,23 +39,77 @@ const sound = new Sound();
 
 /* ─────────────── état ─────────────── */
 const state = {
-  age: 'adulte', index: -1, world: null, mode: 'guide',
-  playing: true, running: false, uiHidden: false, ended: false,
+  age: 'adulte', index: -1, world: null,
+  running: false, uiHidden: false,
   time: 0, beat: 0, pulse: 0, breath: 0, scale: 1,
 };
 const BEAT_PERIOD = 0.86;
 
+const game = new Game({
+  onScore: (n) => ui.setScore(n),
+  onPick: (n, total) => {
+    sound.pick(n, total);
+    ui.updateQuests(game.done, n);
+  },
+  onMission: (m, all) => {
+    ui.updateQuests(game.done, game.picked);
+    ui.toast(`<b>Mission accomplie</b><span>${t(m.label, state.age)}</span>`, 'mission');
+    sound.chime(true);
+    if (all) {
+      ui.setBadges(game.badges());
+      setTimeout(() => {
+        ui.toast(`<b>Escale bouclée</b><span>${t(STATIONS[state.index].name, state.age)} — les trois missions sont faites.</span>`, 'badge');
+        sound.fanfare();
+      }, 1400);
+    }
+  },
+  onRelic: () => {
+    sound.fanfare();
+    ui.toast('<b>Relique trouvée</b><span>Une chose que personne ne voit en passant.</span>', 'relic');
+    setTimeout(() => ui.openCard('relique'), 900);
+  },
+});
+
 const ui = new UI({
   onStart: (age) => start(age),
   onStation: (i) => goto(i),
-  onMode: (m) => setMode(m),
   onAge: (a) => setAge(a),
-  onPlay: () => { state.playing = !state.playing; rig.paused = !state.playing; ui.setPlaying(state.playing); sound.tick(660); },
-  onSound: () => { const on = !sound.on; sound.setEnabled(on); ui.setSound(on); if (on) sound.setAmbience(STATIONS[state.index]?.ambience); },
+  onSound: () => { const on = !sound.on; sound.setEnabled(on); ui.setSound(on); if (on) sound.setStation(STATIONS[state.index]?.id); },
   onSpot: () => sound.tick(980, 0.05),
   onAnswer: (ok) => sound.chime(ok),
+  onQuiz: () => game.notify('quiz'),
+  onSpotRead: (key) => game.notify('read', key),
+  onGuide: () => guideToMission(),
+  onTravel: (point, done) => travelTo(point, done),
+  onRead: (on) => { rig.frozen = on; if (on) rig.releaseLock(); },
   onStick: (x, y, active) => { rig.stick.x = x; rig.stick.y = y; rig.stick.active = active; },
 });
+scene.add(game.group);
+
+/** Emmène la sonde devant un point, puis exécute la suite. */
+function travelTo(point, done, stopAt) {
+  const d = camera.position.distanceTo(point);
+  const dist = Math.max(stopAt ?? (state.world?.spotFar ?? 600) * 0.22, 12);
+  if (d < dist * 1.15) { done?.(); return; }
+  rig.travelTo(point, { dist, ms: clamp(d / (state.world?.freeSpeed ?? 60) * 260, 700, 2600), onArrive: done });
+  sound.whoosh(0.6);
+}
+
+function guideToMission() {
+  const g = game.guideTarget();
+  if (!g) { ui.narrate(state.age === 'enfant'
+    ? 'Tout est fait ici ! Va voir l’escale suivante.'
+    : 'Les trois missions de cette escale sont accomplies.', 4000); return; }
+  // on s'arrête franchement à l'intérieur du rayon de la mission, sinon on
+  // arrive « presque » et l'objectif ne se valide jamais
+  const m = g.mission;
+  const stop = m.type === 'reach' ? (m.r ?? 150) * 0.5
+    : m.type === 'collect' ? (MISSIONS[STATIONS[state.index].id]?.pickRadius ?? 46) * 0.6
+      : undefined;
+  travelTo(g.point, () => {
+    if (m.type === 'read') ui.openCard(m.spot);
+  }, stop);
+}
 
 /* ─────────────── démarrage ─────────────── */
 async function start(age) {
@@ -76,24 +132,11 @@ function setAge(age, silent) {
   state.age = age;
   ui.setAge(age);
   U.uVivid.value = age === 'enfant' ? 1.3 : 1.0;
+  applyLight(state.world?.light);
   applyGrade();
   if (!silent) {
     sound.tick(age === 'enfant' ? 880 : 520, 0.05);
     if (state.world) ui.narrate(t(STATIONS[state.index].intro, age), 9000);
-  }
-}
-
-function setMode(m) {
-  if (m === state.mode) return;
-  state.mode = m;
-  rig.setMode(m);
-  ui.setMode(m);
-  sound.tick(m === 'libre' ? 740 : 520, 0.05);
-  if (m === 'libre') { rig.requestLock(); ui.narrate(state.age === 'enfant'
-    ? 'À toi de jouer ! Utilise <b>Z Q S D</b> pour te déplacer et la souris pour regarder.'
-    : 'Vol libre : <b>Z Q S D</b> pour translater, <b>Maj/Ctrl</b> pour l’altitude, souris pour l’assiette.', 8000);
-  } else {
-    ui.narrate(state.age === 'enfant' ? 'Retour dans le tunnel guidé.' : 'Retour sur le rail de la visite.', 4000);
   }
 }
 
@@ -103,7 +146,7 @@ async function goto(i, first = false) {
   i = clamp(i, 0, STATIONS.length - 1);
   if (loading || (i === state.index && !first)) return;
   loading = true;
-  state.ended = false;
+  ui.closeCard();
 
   if (!first) { ui.transit(true); sound.whoosh(1.0); await wait(430); }
   else ui.loader(true, t(STATIONS[0].name, state.age));
@@ -124,17 +167,21 @@ async function goto(i, first = false) {
   U.uFogColor.value.setHex(st.fog.color);
   U.uFogDensity.value = st.fog.density;
   scene.background.setHex(st.fog.color);
-  sound.setAmbience(st.ambience);
+  sound.setStation(st.id);
 
   rig.setStation(world);
-  if (PARAMS.has('u')) rig.u = clamp(num('u', 0), 0, 1);
   rig.shake = world.shake ?? 0.5;
-  rig.onEnd = onTourEnd;
-  rig.paused = !state.playing;
-  if (state.mode === 'libre') rig.setMode('libre');
+
+  const def = MISSIONS[st.id];
+  game.setStation(i, world, def);
+  game.spotPos = world.spots || {};
 
   ui.setStation(i);
   ui.buildHotspots(world);
+  ui.setQuests(def, game.done, game.picked, game.total);
+  ui.setScore(game.score);
+  ui.setBadges(game.badges());
+  applyLight(world.light);
   applyGrade();
 
   // une image à blanc pour compiler les shaders avant l'apparition
@@ -148,15 +195,32 @@ async function goto(i, first = false) {
   loading = false;
 }
 
-function onTourEnd() {
-  if (state.ended) return;
-  state.ended = true;
-  if (state.index < STATIONS.length - 1) {
-    setTimeout(() => { if (state.mode === 'guide') goto(state.index + 1); }, 1600);
-  } else {
-    ui.openCard('finale');
-    sound.chime(true);
-  }
+/**
+ * Pose le banc de lumières de l'escale. C'est ici que se joue la différence
+ * d'ambiance d'un organe à l'autre : direction, couleur et dosage des trois
+ * sources. Les valeurs par défaut correspondent à une cavité neutre.
+ */
+const LIGHT_DEFAULT = {
+  key:  { dir: [0.4, 1, 0.3], color: 0xffe6cf, int: 0.45 },
+  fill: { dir: [-0.5, -0.3, -0.7], color: 0x3a5cff, int: 0.16 },
+  sky:  { top: 0x5a6cff, bot: 0x2a0a10, int: 0.14 },
+};
+
+function applyLight(cfg) {
+  const kid = state.age === 'enfant';
+  const l = cfg || LIGHT_DEFAULT;
+  const key = l.key || LIGHT_DEFAULT.key;
+  const fill = l.fill || LIGHT_DEFAULT.fill;
+  const sky = l.sky || LIGHT_DEFAULT.sky;
+  U.uKeyDir.value.set(...key.dir).normalize();
+  U.uKeyCol.value.setHex(key.color);
+  U.uKeyInt.value = key.int * (kid ? 1.18 : 1);
+  U.uFillDir.value.set(...fill.dir).normalize();
+  U.uFillCol.value.setHex(fill.color);
+  U.uFillInt.value = fill.int * (kid ? 1.25 : 1);
+  U.uSkyCol.value.setHex(sky.top);
+  U.uGndCol.value.setHex(sky.bot);
+  U.uSkyInt.value = sky.int * (kid ? 1.3 : 1);
 }
 
 function applyGrade() {
@@ -188,22 +252,24 @@ function loop() {
   // cycle cardiaque : deux bosses, « toum-ta »
   const prev = state.beat;
   state.beat = (state.beat + dt / BEAT_PERIOD) % 1;
-  if (state.beat < prev) sound.beat(0.9);
+  if (state.beat < prev) { sound.beat(); ui.beat(); }
   const p = state.beat;
   state.pulse = Math.exp(-Math.pow((p - 0.05) / 0.055, 2)) + 0.5 * Math.exp(-Math.pow((p - 0.29) / 0.05, 2));
   state.breath = Math.sin(state.time * (Math.PI * 2) / 4.4);
 
   U.uTime.value = state.time;
   U.uPulse.value = state.pulse;
+  U.uBeat.value = state.beat;
   U.uBreath.value = state.breath;
 
   rig.update(dt, state.pulse);
   state.world?.update(state.time, dt, state.pulse, state.breath, camera);
+  game.update(dt, camera);
+  sound.frame(dt, state.time, camera, state.breath);
 
   post.grade.uniforms.uTime.value = state.time;
   post.grade.uniforms.uPulse.value = state.pulse;
   ui.updateHotspots(camera, innerWidth, innerHeight);
-  if (state.mode === 'guide') ui.progress(rig.u);
 
   post.composer.render();
 
@@ -239,18 +305,17 @@ resize();
 
 rig.onTap = (e) => {
   if (ui.pickAt(e.clientX, e.clientY, 80)) return;
-  if (state.mode === 'libre' && !rig.locked) rig.requestLock();
+  if (!rig.locked && !rig.frozen && !matchMedia('(pointer: coarse)').matches) rig.requestLock();
 };
 
 addEventListener('keydown', (e) => {
   if (!state.running) return;
   const k = e.code;
-  if (k === 'Space') { setMode(state.mode === 'guide' ? 'libre' : 'guide'); e.preventDefault(); }
-  else if (k === 'Comma' || k === 'BracketLeft' || k === 'PageUp') goto(state.index - 1);
+  if (k === 'Comma' || k === 'BracketLeft' || k === 'PageUp') goto(state.index - 1);
   else if (k === 'Period' || k === 'BracketRight' || k === 'PageDown') goto(state.index + 1);
+  else if (k === 'KeyG') guideToMission();
   else if (k === 'KeyH') { state.uiHidden = !state.uiHidden; document.body.classList.toggle('ui-hidden', state.uiHidden); }
-  else if (k === 'KeyM') { const on = !sound.on; sound.setEnabled(on); ui.setSound(on); if (on) sound.setAmbience(STATIONS[state.index]?.ambience); }
-  else if (k === 'KeyP') { state.playing = !state.playing; rig.paused = !state.playing; ui.setPlaying(state.playing); }
+  else if (k === 'KeyM') { const on = !sound.on; sound.setEnabled(on); ui.setSound(on); if (on) sound.setStation(STATIONS[state.index]?.id); }
   else if (k === 'KeyE' || k === 'Enter') { if (!ui.pickAt(innerWidth / 2, innerHeight / 2, 220)) ui.openCard('station'); }
   else if (k === 'Escape') { ui.closeCard(); ui.toggleMenu(false); ui.toggleHelp(false); }
 });
@@ -262,7 +327,7 @@ document.addEventListener('visibilitychange', () => { if (!document.hidden) cloc
 /* Sonde de mise au point (?debug=1) : luminance moyenne de l'image. */
 if (PARAMS.has('debug')) {
   window.__app = {
-    scene, camera, renderer, post, rig, ui, state, THREE,
+    scene, camera, renderer, post, rig, ui, game, sound, state, THREE,
     probe() {
       const c = document.createElement('canvas'); c.width = 160; c.height = 100;
       const g = c.getContext('2d', { willReadFrequently: true });

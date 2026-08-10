@@ -81,13 +81,14 @@ export function createComposer(renderer, scene, camera) {
   composer.setPixelRatio(renderer.getPixelRatio());
 
   const renderPass = new RenderPass(scene, camera);
-  const bloom = new UnrealBloomPass(new THREE.Vector2(innerWidth, innerHeight), 0.62, 0.62, 0.72);
-  // plafonne la source du halo : un pixel très brillant ne doit pas
-  // « éclabousser » toute l'image via les niveaux de mip.
+  // Seuil haut et noyau large : sous ce réglage, seules les vraies sources
+  // lumineuses fleurissent. Un éclat d'un pixel se retrouvait sinon étalé par
+  // l'agrandissement bilinéaire des niveaux grossiers — en carré net.
+  const bloom = new UnrealBloomPass(new THREE.Vector2(innerWidth, innerHeight), 0.62, 0.92, 0.85);
   bloom.materialHighPassFilter.fragmentShader =
     bloom.materialHighPassFilter.fragmentShader.replace(
       'gl_FragColor = mix( outputColor, texel, alpha );',
-      'gl_FragColor = min( mix( outputColor, texel, alpha ), vec4( 3.0 ) );');
+      'gl_FragColor = min( mix( outputColor, texel, alpha ), vec4( 1.2 ) );');
   const output = new OutputPass();
   const grade = new ShaderPass(GradeShader);
   grade.renderToScreen = true;

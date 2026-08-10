@@ -15,17 +15,19 @@ export default function cerveau(q = 1) {
     voidDome({ top: 0x0e0a26, bottom: 0x030209, cloud: 0x241650, clouds: 0.4, scale: 0.5 })));
 
   /* ── neurones ── */
-  const NEURONS = Math.max(8, Math.round(19 * q));
+  const NEURONS = Math.max(10, Math.round(30 * q));
   const allSegs = [];
   const somas = [], tips = [];
   for (let i = 0; i < NEURONS; i++) {
+    // resserré : la version précédente éparpillait si large qu'on pouvait
+    // se retrouver au milieu du noir, sans un seul neurone en vue
     const o = new THREE.Vector3(
-      (rnd() - 0.5) * 1900,
-      (rnd() - 0.5) * 1000,
-      -300 + (rnd() - 0.5) * 1900);
+      (rnd() - 0.5) * 1500,
+      (rnd() - 0.5) * 900,
+      -200 + (rnd() - 0.5) * 1500);
     const d = new THREE.Vector3(rnd() - 0.5, rnd() - 0.5, rnd() - 0.5).normalize();
     const segs = branchTree({
-      origin: o, dir: d, length: 165 + rnd() * 120, radius: 13 + rnd() * 6,
+      origin: o, dir: d, length: 175 + rnd() * 130, radius: 14 + rnd() * 7,
       depth: 4, split: 2, lengthDecay: 0.76, radiusDecay: 0.68,
       spread: 0.72, seed: 100 + i * 7, jitter: 0.42,
     });
@@ -34,8 +36,8 @@ export default function cerveau(q = 1) {
     for (const s of segs) if (s.level >= 3) tips.push(s.b);
   }
   const neurons = segmentsToMesh(allSegs, pulseStrand({
-    base: 0x4a3f8e, spark: 0xbdefff, speed: 0.30, width: 0.085, density: 3.2,
-    rim: 1.1, intensity: 3.4, falloff: 0.0000015,
+    base: 0x5a4ca8, spark: 0xd8f4ff, speed: 0.34, width: 0.10, density: 3.2,
+    rim: 1.5, intensity: 4.6, falloff: 0.0000015,
   }), 8, { uvAlong: true, uvScale: 0.0022, heightSeg: 2, open: true });
   group.add(neurons);
 
@@ -95,8 +97,8 @@ export default function cerveau(q = 1) {
   group.add(vessel);
 
   const path = new THREE.CatmullRomCurve3([
-    new THREE.Vector3(-1300, 300, 1300),
-    new THREE.Vector3(-820, 150, 820),
+    new THREE.Vector3(-760, 210, 900),
+    new THREE.Vector3(-620, 150, 620),
     new THREE.Vector3(-420, -60, 420),
     new THREE.Vector3(-60, 90, 40),
     new THREE.Vector3(320, -30, -260),
@@ -118,6 +120,12 @@ export default function cerveau(q = 1) {
     group, path, spots, spotFar: 1500,
     speed: 0.0072, freeSpeed: 170, lookAhead: 0.014, fov: 74, shake: 0.25,
     bounds: { type: 'sphere', center: new THREE.Vector3(-100, 0, -200), radius: 1800 },
+    // presque noir : ce sont les neurones qui éclairent
+    light: {
+      key:  { dir: [0.3, 0.7, -0.6], color: 0x7ea0ff, int: 0.24 },
+      fill: { dir: [-0.5, -0.4, 0.6], color: 0x4020a0, int: 0.2 },
+      sky:  { top: 0x3a2a80, bot: 0x04020e, int: 0.16 },
+    },
     grade: { bloom: 0.95, tint: [0.97, 0.98, 1.1], vig: 0.6, exposure: 1.08 },
     update(t, dt, pulse, breath, cam) { if (cam) nt.position.copy(cam.position); },
   };

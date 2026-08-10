@@ -26,14 +26,13 @@ export default function intestin(q = 1) {
     deep: 0x381208, mid: 0xc25a32, hot: 0xffcf94,
     noiseScale: 0.04, displace: 2.4, pulseAmp: 0.2,
     bumpScale: 0.5, bumpAmp: 0.45, normalMix: 0.45,
-    key: 0.26, keyDir: new THREE.Vector3(0.1, 1, 0.25), keyColor: 0xff9a5a,
     rim: 0.6, wet: 0.5, shiny: 24, falloff: 0.00004, ambient: 0.26, light: 1.45,
     vein: true, veinAmt: 0.4, veinScale: 0.1,
   }));
   group.add(wall);
 
   /* ── villosités ── */
-  const NV = Math.round(9000 * q);
+  const NV = Math.round(7000 * q);
   const vPos = new Float32Array(NV * 3), vDir = new Float32Array(NV * 3),
         vSc = new Float32Array(NV * 2), vSeed = new Float32Array(NV);
   for (let i = 0; i < NV; i++) {
@@ -54,21 +53,22 @@ export default function intestin(q = 1) {
     vSc[i * 2 + 1] = 24 + rnd() * 17;
     vSeed[i] = rnd();
   }
-  const villi = new THREE.Mesh(instanced(spindle(8, 6), NV, {
+  const villi = new THREE.Mesh(instanced(spindle(6), NV, {
     aPos: { array: vPos, size: 3 }, aDir: { array: vDir, size: 3 },
     aScale: { array: vSc, size: 2 }, aSeed: { array: vSeed, size: 1 },
   }), stalkField({
-    root: 0x631d0a, tip: 0xf07a34, hot: 0xffb070,
-    sway: 0.20, rate: 1.4, rim: 0.7, wet: 0.3, ambient: 0.3,
-    falloff: 0.00009, tipGlow: 0.1, pulseAmp: 0.3,
+    root: 0x2a0803, tip: 0xd8703a, hot: 0xffb070,
+    sway: 0.20, rate: 1.4, rim: 0.55, wet: 0.28, ambient: 0.16,
+    falloff: 0.00009, tipGlow: 0.08, pulseAmp: 0.3, rootAO: 0.20,
   }));
   villi.frustumCulled = false;
   group.add(villi);
 
   /* ── nutriments ── */
-  const nutri = moteField(Math.round(2600 * q), 400, {
-    shape: 'sphere', colorA: 0xffd07a, colorB: 0xfff0d0,
-    size: 6.5, drift: 20, rate: 0.2, intensity: 0.6, twinkle: 0.85,
+  const nutri = moteField(Math.round(900 * q), 400, {
+    shape: 'sphere', colorA: 0xffb45a, colorB: 0xffe8b0,
+    size: 11, drift: 20, rate: 0.2, intensity: 0.3, twinkle: 0.45,
+    soft: 2.4, near: 46,
   }, 61);
   group.add(nutri);
 
@@ -85,7 +85,7 @@ export default function intestin(q = 1) {
     cPos[i * 3 + 2] = c.z + (f.n.z * Math.cos(a) + f.b.z * Math.sin(a)) * rr;
     cSize[i] = 2.5 + rnd() * 5; cSeed[i] = rnd(); cSpin[i] = (rnd() - 0.5) * 1.6;
   }
-  const chunkSrc = blob(1, 2, (n) => 0.24 * Math.sin(n.x * 6) * Math.sin(n.y * 7) * Math.sin(n.z * 5));
+  const chunkSrc = blob(1, 3, (n) => 0.24 * Math.sin(n.x * 6) * Math.sin(n.y * 7) * Math.sin(n.z * 5));
   const cg = new THREE.InstancedBufferGeometry();
   cg.index = chunkSrc.index;
   for (const k in chunkSrc.attributes) cg.setAttribute(k, chunkSrc.attributes[k]);
@@ -104,7 +104,7 @@ export default function intestin(q = 1) {
 
   /* lueur ambrée en avant */
   const lamp = new THREE.Mesh(new THREE.SphereGeometry(R * 1.5, 18, 12),
-    glow({ color: 0xff9a3c, intensity: 0.07, core: 0.0, power: 3.0 }));
+    glow({ color: 0xff8a2c, intensity: 0.035, core: 0.0, power: 3.0 }));
   group.add(lamp);
 
   const path = ch.curve(Z0 + 70, Z1 - 90, 160);
@@ -125,7 +125,13 @@ export default function intestin(q = 1) {
     group, path, spots, spotFar: 360,
     speed: 0.0105, freeSpeed: 70, lookAhead: 0.015, fov: 74, shake: 0.45,
     bounds: { type: 'tube', channel: ch, z0: Z0 + 40, z1: Z1 - 40, radius: R * 0.72 },
-    grade: { bloom: 0.6, tint: [1.07, 0.99, 0.92], vig: 0.58, exposure: 1.04 },
+    // chaleur ambrée, dense
+    light: {
+      key:  { dir: [0.15, 0.9, 0.35], color: 0xffb066, int: 0.5 },
+      fill: { dir: [-0.3, -0.8, -0.5], color: 0x8a2a12, int: 0.22 },
+      sky:  { top: 0xb04a20, bot: 0x2a0c04, int: 0.2 },
+    },
+    grade: { bloom: 0.38, tint: [1.07, 0.99, 0.92], vig: 0.62, exposure: 1.0 },
     update(t, dt, pulse, breath, cam) {
       if (cam) { nutri.position.copy(cam.position); lamp.position.copy(cam.position); }
     },

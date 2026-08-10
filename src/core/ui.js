@@ -1,23 +1,26 @@
 import * as THREE from 'three';
 import { STATIONS, FINALE, t } from '../content/stations.js';
+import { MISSIONS } from '../content/missions.js';
 
 const $ = (s) => document.querySelector(s);
 const el = (tag, cls, html) => { const e = document.createElement(tag); if (cls) e.className = cls; if (html != null) e.innerHTML = html; return e; };
 
 const TIPS = {
   e: [
-    'Bouge la souris pour <b>regarder autour de toi</b>.',
-    'Appuie sur <b>Espace</b> pour te promener tout seul.',
-    'Clique sur les <b>points bleus</b> : ils cachent des secrets.',
+    '<b>Z Q S D</b> pour voler, la <b>souris</b> pour regarder.',
+    'Vole <b>dans</b> les pastilles vertes pour les ramasser.',
+    'Bloqué ? Appuie sur <b>G</b> : on t’emmène à ta mission.',
+    'Il y a une <b>relique dorée</b> cachée dans chaque escale.',
+    'Clique sur les <b>points bleus</b> : ils racontent quelque chose.',
     'Touche <b>H</b> pour cacher l’écran et prendre une belle photo.',
-    'Roulette de la souris = <b>zoom</b>.',
   ],
   a: [
+    '<b>Espace</b> monte, <b>Ctrl</b> descend.',
+    '<b>G</b> : la sonde vous emmène jusqu’à la mission en cours.',
+    'Les pastilles se ramassent en volant dedans.',
+    'Une relique est cachée au large de chaque escale, sans repère.',
     'Molette : <b>focale</b> de la sonde.',
-    '<b>Espace</b> bascule entre rail guidé et vol libre.',
-    'Les <b>repères</b> ouvrent une fiche détaillée.',
     '<b>H</b> masque l’interface — mode contemplation.',
-    'En vol libre : <b>Maj</b> monte, <b>Ctrl</b> descend.',
   ],
 };
 
@@ -87,12 +90,17 @@ export class UI {
     $('#card-close').addEventListener('click', () => this.closeCard());
     $('#btn-prev').addEventListener('click', () => this.cb.onStation(this.index - 1));
     $('#btn-next').addEventListener('click', () => this.cb.onStation(this.index + 1));
-    $('#btn-play').addEventListener('click', () => this.cb.onPlay());
     $('#btn-sound').addEventListener('click', () => this.cb.onSound());
     document.querySelectorAll('.age-switch button').forEach(b =>
       b.addEventListener('click', () => this.cb.onAge(b.dataset.age)));
-    document.querySelectorAll('#mode-toggle button').forEach(b =>
-      b.addEventListener('click', () => this.cb.onMode(b.dataset.mode)));
+
+    $('#quest-guide').addEventListener('click', () => this.cb.onGuide());
+    $('#quests-toggle').addEventListener('click', () => {
+      const q = $('#quests');
+      const open = !q.classList.contains('folded');
+      q.classList.toggle('folded', open);
+      $('#quests-toggle').setAttribute('aria-expanded', String(!open));
+    });
 
     this.hotspotLayer = $('#hotspots');
     this._stick();
@@ -151,6 +159,65 @@ export class UI {
     this.narrate(t(this.station.intro, this.age), 11000);
   }
 
+  /* ─────────────── carnet de missions ─────────────── */
+  setQuests(def, done, picked, total) {
+    this.questDef = def;
+    const list = $('#quest-list');
+    list.innerHTML = '';
+    const missions = def?.missions || [];
+    for (const m of missions) {
+      const li = el('li', 'quest' + (done.has(m.id) ? ' done' : ''));
+      li.dataset.id = m.id;
+      const count = m.type === 'collect' ? ` <i>${Math.min(picked, m.n)}/${m.n}</i>` : '';
+      li.innerHTML = `<span class="quest-tick" aria-hidden="true">
+          <svg viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg>
+        </span><span class="quest-text">${t(m.label, this.age)}${count}</span>`;
+      list.appendChild(li);
+    }
+    $('#quests-count').textContent = `${done.size}/${missions.length}`;
+    $('#quests').hidden = missions.length === 0;
+  }
+
+  updateQuests(done, picked) {
+    const missions = this.questDef?.missions || [];
+    for (const li of $('#quest-list').children) {
+      const m = missions.find(x => x.id === li.dataset.id);
+      if (!m) continue;
+      li.classList.toggle('done', done.has(m.id));
+      if (m.type === 'collect') {
+        const i = li.querySelector('i');
+        if (i) i.textContent = `${Math.min(picked, m.n)}/${m.n}`;
+      }
+    }
+    $('#quests-count').textContent = `${done.size}/${missions.length}`;
+  }
+
+  setScore(n) {
+    $('#score-val').textContent = String(n);
+    $('#quest-score').textContent = `${n} pts`;   // relais sur petit écran
+  }
+
+  /** Un battement vient de passer : le cœur de l'interface bat avec lui. */
+  beat() {
+    const c = $('#chip-pulse');
+    if (!c) return;
+    c.classList.add('beat');
+    clearTimeout(this._bt);
+    this._bt = setTimeout(() => c.classList.remove('beat'), 90);
+  }
+
+  /** Bandeau d'annonce : mission accomplie, relique trouvée. */
+  toast(html, kind = '') {
+    const box = $('#toasts');
+    const node = el('div', `toast ${kind}`, html);
+    box.appendChild(node);
+    requestAnimationFrame(() => node.classList.add('on'));
+    setTimeout(() => {
+      node.classList.remove('on');
+      setTimeout(() => node.remove(), 500);
+    }, kind === 'relic' ? 6000 : 3600);
+  }
+
   _chrome() {
     const s = this.station, i = this.index;
     $('#st-num').textContent = String(i + 1).padStart(2, '0');
@@ -170,36 +237,45 @@ export class UI {
       li.classList.toggle('now', k === i);
       li.classList.toggle('seen', this.seen.has(k));
     });
-    $('#menu-progress').textContent = this.seen.size <= 1
-      ? `1 escale sur ${STATIONS.length} explorée`
-      : `${this.seen.size} escales sur ${STATIONS.length} explorées`;
+    $('#st-pager').textContent = String(i + 1).padStart(2, '0');
     $('#btn-prev').disabled = i === 0;
+    $('#btn-next').disabled = i === STATIONS.length - 1;
   }
 
-  setMode(mode) {
-    document.querySelectorAll('#mode-toggle button').forEach(b => b.classList.toggle('on', b.dataset.mode === mode));
-    this._rotateTip();
+  /** Escales dont les trois missions sont accomplies. */
+  setBadges(badges) {
+    const set = new Set(badges);
+    this.menuItems.forEach((li, k) => li.classList.toggle('badge', set.has(k)));
+    this.dotItems.forEach((c, k) => c.classList.toggle('badge', set.has(k)));
+    $('#menu-progress').textContent = set.size === 0
+      ? `${this.seen.size} escale${this.seen.size > 1 ? 's' : ''} sur ${STATIONS.length} visitée${this.seen.size > 1 ? 's' : ''}`
+      : `${set.size} escale${set.size > 1 ? 's' : ''} bouclée${set.size > 1 ? 's' : ''} sur ${STATIONS.length}`;
   }
 
-  setPlaying(p) { $('#btn-play').classList.toggle('paused', !p); }
   setSound(on) { $('#btn-sound').setAttribute('aria-pressed', String(on)); }
 
   /* ─────────────── fiches ─────────────── */
   openCard(key, keepScroll = false) {
     const s = this.station;
     const card = $('#card');
+    const kid = this.age === 'enfant';
     const isStation = key === 'station';
     const isFinale = key === 'finale';
-    const data = isFinale ? FINALE[this.age === 'enfant' ? 'e' : 'a']
-      : isStation ? s.card[this.age === 'enfant' ? 'e' : 'a']
-        : s.spots[key]?.[this.age === 'enfant' ? 'e' : 'a'];
+    const isRelic = key === 'relique';
+    const relic = MISSIONS[s.id]?.relic;
+    const data = isFinale ? FINALE[kid ? 'e' : 'a']
+      : isRelic ? (relic && { title: t(relic.title, this.age), html: t(relic.html, this.age) })
+        : isStation ? s.card[kid ? 'e' : 'a']
+          : s.spots[key]?.[kid ? 'e' : 'a'];
     if (!data) return;
 
     this.openKey = key;
     $('#card-kicker').textContent = isFinale ? 'Fin du voyage'
-      : (data.kicker || t(s.spots[key].label, this.age));
+      : isRelic ? 'Relique trouvée'
+        : (data.kicker || t(s.spots[key].label, this.age));
     $('#card-title').textContent = data.title;
     $('#card-body').innerHTML = data.html;
+    card.classList.toggle('is-relic', isRelic);
 
     const stats = $('#card-stats');
     stats.innerHTML = '';
@@ -216,10 +292,13 @@ export class UI {
     if (isStation) this._quiz(quiz);
 
     card.hidden = false;
-    document.body.classList.add('panel-open');
+    document.body.classList.add('panel-open', 'reading');
     if (!keepScroll) $('.card-scroll').scrollTop = 0;
     this.hotspotLayer.querySelectorAll('.hotspot').forEach(h =>
       h.classList.toggle('open', h.dataset.key === key));
+    // la sonde s'immobilise et rend le curseur : sinon on ne peut pas lire
+    this.cb.onRead?.(true);
+    if (!isStation && !isFinale && !isRelic) this.cb.onSpotRead?.(key);
   }
 
   _quiz(root) {
@@ -240,6 +319,7 @@ export class UI {
         });
         root.appendChild(el('p', 'quiz-fb', (i === q.ok ? '' : '<b>Presque !</b> ') + q.fb));
         this.cb.onAnswer(i === q.ok);
+        this.cb.onQuiz?.();
       });
       opts.appendChild(b);
     });
@@ -254,10 +334,12 @@ export class UI {
   }
 
   closeCard() {
+    const was = this.openKey;
     $('#card').hidden = true;
-    document.body.classList.remove('panel-open');
+    document.body.classList.remove('panel-open', 'reading');
     this.openKey = null;
     this.hotspotLayer.querySelectorAll('.hotspot').forEach(h => h.classList.remove('open'));
+    if (was) this.cb.onRead?.(false);
   }
 
   /* ─────────────── points d'intérêt ─────────────── */
@@ -271,7 +353,7 @@ export class UI {
       node.dataset.key = key;
       node.innerHTML = `<span class="hotspot-ring"></span><span class="hotspot-label"></span>`;
       node.querySelector('.hotspot-label').textContent = t(s.spots[key].label, this.age);
-      node.addEventListener('click', (e) => { e.stopPropagation(); this.openCard(key); this.cb.onSpot(); });
+      node.addEventListener('click', (e) => { e.stopPropagation(); this.goTo(key); });
       this.hotspotLayer.appendChild(node);
       this.spots.push({ key, pos: world.spots[key].clone(), node, vis: false, far: world.spotFar ?? 900 });
     }
@@ -306,6 +388,17 @@ export class UI {
     }
   }
 
+  /**
+   * Clic sur un repère : la sonde va se placer devant, puis la fiche s'ouvre.
+   * C'est ce qui remplace l'ancien rail — on demande, on est emmené.
+   */
+  goTo(key) {
+    const s = this.spots.find(x => x.key === key);
+    if (!s) return;
+    this.cb.onSpot();
+    this.cb.onTravel(s.pos, () => this.openCard(key));
+  }
+
   /** Ouvre le repère le plus proche d'un point de l'écran. */
   pickAt(x, y, radius = 90) {
     let best = null, bd = radius;
@@ -314,7 +407,7 @@ export class UI {
       const d = Math.hypot(s.sx - x, s.sy - y);
       if (d < bd) { bd = d; best = s; }
     }
-    if (best) { this.openCard(best.key); this.cb.onSpot(); return true; }
+    if (best) { this.goTo(best.key); return true; }
     return false;
   }
 
@@ -342,9 +435,17 @@ export class UI {
   toggleMenu(v) {
     const m = $('#menu');
     m.hidden = v === undefined ? !m.hidden : !v;
-    document.body.classList.toggle('panel-open', !m.hidden || !$('#card').hidden);
+    this._panels();
   }
-  toggleHelp(v) { const m = $('#help'); m.hidden = v === undefined ? !m.hidden : !v; }
+  toggleHelp(v) { const m = $('#help'); m.hidden = v === undefined ? !m.hidden : !v; this._panels(); }
+
+  /** Un panneau ouvert immobilise la sonde et rend le curseur. */
+  _panels() {
+    const open = !$('#menu').hidden || !$('#card').hidden || !$('#help').hidden;
+    document.body.classList.toggle('panel-open', open);
+    document.body.classList.toggle('reading', open);
+    this.cb.onRead?.(open);
+  }
 
   transit(on) { $('#transit').classList.toggle('on', on); }
 
@@ -352,6 +453,4 @@ export class UI {
     $('#loader').hidden = !on;
     if (label) $('#loader-station').textContent = label;
   }
-
-  progress(u) { const f = $('#tour-fill'); if (f) f.style.width = `${Math.round(u * 100)}%`; }
 }
