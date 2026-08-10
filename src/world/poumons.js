@@ -1,6 +1,6 @@
 import * as THREE from 'three';
-import { tissue, membrane, stalkField, spindle, instanced, moteField, glow, voidDome } from '../core/mat.js';
-import { makeChannel, channelTube, mergeGeometries, rng, lerp } from '../core/build.js';
+import { tissue, membrane, stalkField, spindle, instanced, moteField, glow, voidDome, driftCells } from '../core/mat.js';
+import { makeChannel, channelTube, mergeGeometries, biconcaveGeometry, rng, lerp } from '../core/build.js';
 
 /**
  * ESCALE 4 — la bronchiole puis les sacs alvéolaires.
@@ -33,8 +33,10 @@ export default function poumons(q = 1) {
   }));
   group.add(bronch);
 
-  /* cils vibratiles */
-  const NC = Math.round(7000 * q);
+  /* Cils vibratiles. Ils étaient trop longs et trop espacés : de loin, une
+     poignée de vers blancs collés au tuyau. Un tapis, c'est court, dense et
+     serré, et ça bat toujours dans le même sens. */
+  const NC = Math.round(13000 * q);
   const cPos = new Float32Array(NC * 3), cDir = new Float32Array(NC * 3),
         cSc = new Float32Array(NC * 2), cSeed = new Float32Array(NC);
   for (let i = 0; i < NC; i++) {
@@ -47,18 +49,27 @@ export default function poumons(q = 1) {
     const nz = f.n.z * Math.cos(a) + f.b.z * Math.sin(a);
     cPos[i * 3] = c.x + nx * r; cPos[i * 3 + 1] = c.y + ny * r; cPos[i * 3 + 2] = c.z + nz * r;
     cDir[i * 3] = -nx; cDir[i * 3 + 1] = -ny; cDir[i * 3 + 2] = -nz;
-    cSc[i * 2] = 1.1 + rnd() * 1.0; cSc[i * 2 + 1] = 4 + rnd() * 4.5;
+    cSc[i * 2] = 0.4 + rnd() * 0.3; cSc[i * 2 + 1] = 2.6 + rnd() * 1.8;
     cSeed[i] = rnd();
   }
-  const cilia = new THREE.Mesh(instanced(spindle(5, 3), NC, {
+  const cilia = new THREE.Mesh(instanced(spindle(5), NC, {
     aPos: { array: cPos, size: 3 }, aDir: { array: cDir, size: 3 },
     aScale: { array: cSc, size: 2 }, aSeed: { array: cSeed, size: 1 },
   }), stalkField({
-    root: 0x7a3a42, tip: 0xe8a8a4, hot: 0xffd0c8,
-    sway: 0.6, rate: 3.6, rim: 0.75, wet: 0.3, ambient: 0.36, falloff: 0.00012, tipGlow: 0.08,
+    root: 0x6e3038, tip: 0xd89a96, hot: 0xffcac2,
+    sway: 0.55, rate: 3.6, rim: 0.6, wet: 0.28, ambient: 0.34, falloff: 0.00012, tipGlow: 0.03,
+    rootAO: 0.35,
   }));
   cilia.frustumCulled = false;
   group.add(cilia);
+
+  /* De la lumière au bout du couloir. Sans elle, la bronchiole débouchait sur
+     un trou sombre où les membranes translucides des sacs voisins montraient
+     leurs arêtes : ça ressemblait à un défaut de rendu. */
+  const mouth = new THREE.Mesh(new THREE.SphereGeometry(BR * 2.2, 24, 16),
+    glow({ color: 0xffd8e2, intensity: 0.24, core: 0.05, power: 2.2 }));
+  mouth.position.copy(ch.center(BZ1 + 40));
+  group.add(mouth);
 
   /* ── mousse alvéolaire ── */
   const alv = [], centers = [];
@@ -71,7 +82,7 @@ export default function poumons(q = 1) {
     const c = corridor(z);
     const p = new THREE.Vector3(c.x + Math.cos(a) * rad, c.y + Math.sin(a) * rad * 0.85, z + (rnd() - 0.5) * 130);
     const r = 46 + rnd() * 82;
-    const g = new THREE.SphereGeometry(r, 18, 13);
+    const g = new THREE.SphereGeometry(r, 26, 18);
     g.translate(p.x, p.y, p.z);
     alv.push(g); centers.push({ p, n: g.attributes.position.count, r });
   }
@@ -86,7 +97,7 @@ export default function poumons(q = 1) {
   alv.forEach(g => g.dispose());
 
   const alvMesh = new THREE.Mesh(alvGeo, membrane({
-    centers: true, inner: 0x2a3f4e, edge: 0xffd8e2, power: 2.3, base: 0.05,
+    centers: true, inner: 0x4a6478, edge: 0xffd8e2, power: 2.3, base: 0.06,
     rimAlpha: 0.72, glow: 0.55, irid: 0.16, alpha: 0.95,
     wobble: 1.4, noiseScale: 0.06, breathAmp: 0.085,
   }));
@@ -104,7 +115,10 @@ export default function poumons(q = 1) {
     if (rnd() > 0.75 * q + 0.15) continue;
     const c = centers[i];
     for (let k = 0; k < 2; k++) {
-      const g = new THREE.TorusGeometry(c.r * (0.94 + rnd() * 0.1), 2.4 + rnd() * 1.6, 5, 30);
+      // arcs partiels et non des anneaux entiers : un cercle complet posé
+      // autour d'une bulle se lit comme un cerceau, pas comme un vaisseau
+      const g = new THREE.TorusGeometry(c.r * (0.96 + rnd() * 0.08), 3.4 + rnd() * 1.8, 6, 24,
+        Math.PI * (0.9 + rnd() * 0.9));
       g.rotateX(rnd() * 3.14); g.rotateY(rnd() * 3.14); g.rotateZ(rnd() * 3.14);
       g.translate(c.p.x, c.p.y, c.p.z);
       capGeos.push(g);
@@ -112,12 +126,99 @@ export default function poumons(q = 1) {
   }
   const caps = new THREE.Mesh(mergeGeometries(capGeos), tissue({
     side: THREE.DoubleSide, bump: false,
-    deep: 0x4a0812, mid: 0xd03a48, hot: 0xff9a8c,
+    deep: 0x7a1420, mid: 0xd84450, hot: 0xffa898,
     noiseScale: 0.08, displace: 0.5, breathAmp: 0.1,
-    rim: 0.9, wet: 0.5, shiny: 30, falloff: 0.000012, ambient: 0.3, normalMix: 0.35,
+    rim: 0.9, wet: 0.5, shiny: 30, falloff: 0.0000045, ambient: 0.5, light: 1.4, normalMix: 0.28,
   }));
   capGeos.forEach(g => g.dispose());
   group.add(caps);
+
+  /* ══════════ le sac qu'on va visiter ══════════
+     Trois des quatre repères de l'escale portent sur la même chose vue de
+     trois façons : la bulle, le film qui la tapisse, et le vaisseau qui
+     l'enlace. Il fallait donc un sac unique, plus grand que les autres, à
+     l'écart de la mousse, dont on puisse faire le tour. */
+  const HERO = new THREE.Vector3(-40, 40, 640);
+  const HR = 215;
+
+  const sac = new THREE.Mesh(new THREE.SphereGeometry(HR, 60, 40), membrane({
+    inner: 0x35505f, edge: 0xffe2ea, power: 2.1, base: 0.045,
+    rimAlpha: 0.62, glow: 0.5, irid: 0.14, alpha: 0.94,
+    wobble: 2.2, noiseScale: 0.02, breathAmp: 0.0,
+  }));
+  sac.position.copy(HERO);
+  sac.renderOrder = 3;
+  group.add(sac);
+
+  // le film savonneux : une pellicule irisée juste sous la paroi
+  const film = new THREE.Mesh(new THREE.SphereGeometry(HR * 0.955, 48, 32), membrane({
+    inner: 0x203a4a, edge: 0xcfe8ff, power: 3.0, base: 0.02,
+    rimAlpha: 0.5, glow: 0.9, irid: 0.85, alpha: 0.7,
+    wobble: 1.0, noiseScale: 0.05, additive: true,
+  }));
+  film.position.copy(HERO);
+  film.renderOrder = 4;
+  group.add(film);
+
+  /* le capillaire : un fil enroulé autour du sac, où les hématies passent
+     à la file indienne. C'est la seule façon de rendre visible « un par un ». */
+  const capPts = [];
+  const TURNS = 3.1;
+  for (let i = 0; i <= 260; i++) {
+    const t = i / 260;
+    const phi = Math.acos(1 - 2 * (0.08 + 0.84 * t));
+    const th = t * TURNS * Math.PI * 2;
+    const rr = HR * 1.045;
+    capPts.push(new THREE.Vector3(
+      HERO.x + Math.sin(phi) * Math.cos(th) * rr,
+      HERO.y + Math.cos(phi) * rr,
+      HERO.z + Math.sin(phi) * Math.sin(th) * rr));
+  }
+  const capCurve = new THREE.CatmullRomCurve3(capPts);
+  const capTube = new THREE.Mesh(new THREE.TubeGeometry(capCurve, 300, 9.5, 12, false), tissue({
+    side: THREE.DoubleSide, bump: false, transparent: true, alpha: 0.5, depthWrite: false,
+    deep: 0x5a0a16, mid: 0xc03040, hot: 0xff9a8c,
+    noiseScale: 0.06, displace: 0.3, normalMix: 0.2,
+    rim: 1.0, wet: 0.5, shiny: 28, falloff: 0.00002, ambient: 0.3,
+  }));
+  capTube.renderOrder = 5;
+  group.add(capTube);
+
+  // les hématies dedans, en file : leurs positions sont relues sur la courbe
+  const NRB = 46;
+  const rbPos = new Float32Array(NRB * 3), rbSize = new Float32Array(NRB),
+        rbSeed = new Float32Array(NRB), rbSpin = new Float32Array(NRB);
+  for (let i = 0; i < NRB; i++) { rbSize[i] = 7.4; rbSeed[i] = rnd(); rbSpin[i] = 0.2; }
+  const rbSrc = biconcaveGeometry(1, 18, 10);
+  const rbGeo = new THREE.InstancedBufferGeometry();
+  rbGeo.index = rbSrc.index;
+  for (const k in rbSrc.attributes) rbGeo.setAttribute(k, rbSrc.attributes[k]);
+  const rbAttr = new THREE.InstancedBufferAttribute(rbPos, 3);
+  rbAttr.setUsage(THREE.DynamicDrawUsage);
+  rbGeo.setAttribute('aPos', rbAttr);
+  rbGeo.setAttribute('aSize', new THREE.InstancedBufferAttribute(rbSize, 1));
+  rbGeo.setAttribute('aSeed', new THREE.InstancedBufferAttribute(rbSeed, 1));
+  rbGeo.setAttribute('aSpin', new THREE.InstancedBufferAttribute(rbSpin, 1));
+  rbGeo.instanceCount = NRB;
+  rbGeo.boundingSphere = new THREE.Sphere(HERO.clone(), HR * 1.4);
+  const rbc = new THREE.Mesh(rbGeo, driftCells({
+    deep: 0x6c0a14, mid: 0xdc3a44, hot: 0xffa896,
+    drift: 0, rate: 0, spinRate: 0.35, falloff: 0.00003,
+    rim: 0.8, wet: 0.4, ambient: 0.34, clear: 14,
+  }));
+  rbc.frustumCulled = false;
+  rbc.renderOrder = 6;
+  group.add(rbc);
+  const _rb = new THREE.Vector3();
+  function flowRBC(t) {
+    for (let i = 0; i < NRB; i++) {
+      const u = (i / NRB + t * 0.035) % 1;
+      capCurve.getPointAt(u, _rb);
+      rbPos[i * 3] = _rb.x; rbPos[i * 3 + 1] = _rb.y; rbPos[i * 3 + 2] = _rb.z;
+    }
+    rbAttr.needsUpdate = true;
+  }
+  flowRBC(0);
 
   /* ── gaz ── */
   const o2 = moteField(Math.round(2200 * q), 900, {
@@ -144,17 +245,17 @@ export default function poumons(q = 1) {
   ]);
   path.curveType = 'centripetal';
 
-  const near = centers.slice().sort((a, b) => a.p.z - b.p.z);
-  const pick = (i) => (near[i] ? near[i].p.clone() : new THREE.Vector3(0, 0, 400));
+  const capMid = capCurve.getPointAt(0.5);
   const spots = {
-    alveole: pick(Math.floor(centers.length * 0.18)),
-    capillaire: pick(Math.floor(centers.length * 0.34)).add(new THREE.Vector3(0, 60, 0)),
-    surfactant: pick(Math.floor(centers.length * 0.55)),
-    bronchiole: ch.center(-320),
+    alveole: { p: HERO.clone(), r: HR, view: HERO.clone().add(new THREE.Vector3(-330, 150, -400)) },
+    capillaire: { p: capMid.clone(), r: 26, view: capMid.clone().sub(HERO).multiplyScalar(1.4).add(HERO).add(new THREE.Vector3(30, 40, 0)) },
+    surfactant: { p: HERO.clone().add(new THREE.Vector3(0, -HR * 0.62, 0)), r: 60,
+                  view: HERO.clone().add(new THREE.Vector3(20, 30, 30)) },
+    bronchiole: { p: ch.center(-320), r: 54, view: ch.center(-500).add(new THREE.Vector3(14, 10, 0)) },
   };
 
   return {
-    group, path, spots, spotFar: 620,
+    group, path, spots, spotFar: 900,
     speed: 0.0095, freeSpeed: 90, lookAhead: 0.014, fov: 72, shake: 0.4,
     bounds: { type: 'sphere', center: new THREE.Vector3(0, 0, 420), radius: 900 },
     // brume matinale : tout est diffus, peu de contraste
@@ -167,6 +268,10 @@ export default function poumons(q = 1) {
     update(t, dt, pulse, breath, cam) {
       if (cam) { o2.position.copy(cam.position); co2.position.copy(cam.position); }
       dome.rotation.y = t * 0.004;
+      flowRBC(t);
+      // le sac respire pour de bon : il se gonfle et se dégonfle avec le cycle
+      const s = 1 + breath * 0.055;
+      sac.scale.setScalar(s); film.scale.setScalar(s);
     },
   };
 }

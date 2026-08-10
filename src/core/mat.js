@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { NOISE, CURVE, FOG, UTIL, LIGHT } from './glsl.js';
+import { NOISE, CURVE, FOG, UTIL, LIGHT, PAVE } from './glsl.js';
 
 /* ══════════ uniformes partagés par toute la scène ══════════
    Un seul objet par uniforme : le mettre à jour met à jour tous
@@ -60,6 +60,10 @@ export function tissue(o = {}) {
   // onde de pression : un renflement lumineux qui remonte le conduit à chaque
   // battement. C'est ce qui rend visible que le cœur commande, même loin de lui.
   if (o.wave) defines.HB_WAVE = '';
+  // pavage : la surface est faite de cellules jointives, pas de bruit
+  if (o.pave) defines.HB_PAVE = '';
+  // le pavage se calcule sur les coordonnées monde plutôt que sur l'uv
+  if (o.paveWorld) defines.HB_PAVE_WORLD = '';
   // Par défaut la surface est toujours éclairée du côté de la sonde : on ne
   // dépend donc jamais du sens d'enroulement des triangles.
   if (o.faceView !== false) defines.HB_FACEVIEW = '';
@@ -99,6 +103,12 @@ export function tissue(o = {}) {
       uWaveWidth:  { value: o.waveWidth ?? 200 },
       uWaveAmp:    { value: o.waveAmp ?? 3.0 },
       uWaveGlow:   { value: o.waveGlow ?? 0.5 },
+      uPaveScale:  { value: new THREE.Vector2(...(o.paveScale ?? [8, 3])) },
+      uPaveDark:   { value: o.paveDark ?? 0.55 },
+      uPaveTint:   { value: o.paveTint ?? 0.16 },
+      uPaveBump:   { value: o.paveBump ?? 0.5 },
+      uPaveRound:  { value: o.paveRound ?? 0.85 },
+      uPaveGloss:  { value: o.paveGloss ?? 0.0 },
       ...lit(o),
     }),
     vertexShader: /* glsl */`
@@ -126,10 +136,12 @@ export function tissue(o = {}) {
         gl_Position = projectionMatrix * viewMatrix * wp;
       }`,
     fragmentShader: /* glsl */`
-      ${NOISE}${UTIL}${FOG}${LIGHT}
+      ${NOISE}${UTIL}${PAVE}${FOG}${LIGHT}
       uniform vec3 uDeep, uMid, uHot, uEmissive;
       uniform float uRim, uWet, uShiny, uFall, uLight, uAmbient, uVivid, uCrack, uCrackScale, uWrap, uAO;
       uniform float uBumpScale, uBumpAmp, uNormalMix, uVein, uVeinScale, uAlpha, uPulse, uTime, uNoiseScale, uWaveGlow;
+      uniform vec2 uPaveScale;
+      uniform float uPaveDark, uPaveTint, uPaveBump, uPaveRound, uPaveGloss;
       varying vec3 vWorld; varying vec3 vNrm; varying vec2 vUv; varying float vN; varying float vWave;
       void main(){
         vec3 V = cameraPosition - vWorld;
@@ -170,6 +182,31 @@ export function tissue(o = {}) {
 
         vec3 base = mix(uDeep, uMid, smoothstep(-0.8, 0.8, vN));
         base = mix(base, uHot, hbSat(vN * 1.5) * 0.5);
+
+      #ifdef HB_PAVE
+        // Pavage cellulaire. Le joint creuse la normale et assombrit la
+        // couleur ; chaque cellule prend une teinte propre. C'est ce qui
+        // distingue un revêtement fait de cellules d'un simple grain.
+        #ifdef HB_PAVE_WORLD
+          vec2 pq = vWorld.xz * uPaveScale;
+          float pw = length(fwidth(vWorld.xz)) * uPaveScale.x;
+        #else
+          vec2 pq = vUv * uPaveScale;
+          float pw = length(fwidth(vUv * uPaveScale));
+        #endif
+        vec2 pv = hbPave(pq, max(pw * 1.6, 0.035), uPaveRound);
+        base *= 1.0 - uPaveDark * pv.x;
+        base *= 1.0 + uPaveTint * (pv.y - 0.5) * 2.0;
+        // le joint est un sillon : on incline la normale en s'en approchant
+        vec2 pg = vec2(dFdx(pv.x), dFdy(pv.x));
+        vec3 dpx = dFdx(vWorld), dpy = dFdy(vWorld);
+        N = normalize(N - (dpx * pg.x + dpy * pg.y) * (uPaveBump * 16.0));
+        ndv = clamp(dot(N, V), 0.0, 1.0);
+        float gloss = uPaveGloss * (1.0 - pv.x);
+      #else
+        float gloss = 0.0;
+      #endif
+
       #ifdef HB_VEIN
         float vein = smoothstep(0.58, 1.0, hbRidge(vWorld * uVeinScale));
         base = mix(base, uDeep * 0.4, vein * uVein);
@@ -191,7 +228,7 @@ export function tissue(o = {}) {
 
         float fres = pow(max(1.0 - ndv, 0.0), 3.2);
         col += uHot * fres * uRim * (0.3 + 0.7 * atten);
-        col += vec3(1.0) * pow(ndv, uShiny) * uWet * atten * mix(0.2, 1.0, lod);
+        col += vec3(1.0) * pow(ndv, uShiny) * uWet * (1.0 + gloss * 3.0) * atten * mix(0.2, 1.0, lod);
         col += uEmissive * (0.7 + 0.6 * uPulse);
       #ifdef HB_WAVE
         col += uHot * vWave * uWaveGlow;
@@ -827,6 +864,129 @@ export function pulseStrand(o = {}) {
         gl_FragColor = vec4(col, uAlpha);
       }`,
   });
+}
+
+/* ═══════════════════════════════════════════════════════════
+   FILINS — cordages, fibres, suspentes.
+   Un ruban de deux triangles par segment, élargi dans le plan de l'écran :
+   le filin garde donc la même épaisseur apparente quelle que soit la
+   distance. Des LineSegments donnaient un cheveu d'un pixel qui disparaissait
+   dès qu'on s'éloignait, et scintillait quand on bougeait.
+   ═══════════════════════════════════════════════════════════ */
+export function strandMat(o = {}) {
+  return new THREE.ShaderMaterial({
+    side: THREE.DoubleSide, transparent: true, depthWrite: o.depthWrite ?? true,
+    uniforms: g({
+      uRoot:  { value: new THREE.Color(o.root ?? 0xd8b8a8) },
+      uTip:   { value: new THREE.Color(o.tip ?? 0xfff0e4) },
+      uWidth: { value: o.width ?? 2.2 },     // en pixels
+      uMinW:  { value: o.minWidth ?? 0.35 }, // en unités monde
+      uAlpha: { value: o.alpha ?? 0.92 },
+      uAmbient: { value: o.ambient ?? 0.45 },
+      uFall:  { value: o.falloff ?? 0.00006 },
+      ...lit(o),
+    }),
+    vertexShader: /* glsl */`
+      attribute vec3 aTan; attribute float aSide; attribute float aT;
+      uniform float uWidth, uPx, uMinW;
+      varying float vT; varying vec3 vWorld; varying vec3 vTan;
+      void main(){
+        vT = aT;
+        vec3 wp = (modelMatrix * vec4(position, 1.0)).xyz;
+        vec3 tw = normalize(mat3(modelMatrix) * aTan);
+        vec3 toEye = cameraPosition - wp;
+        float dist = max(length(toEye), 1e-3);
+        vec3 V = toEye / dist;
+        vec3 side = cross(tw, V);
+        float sl = length(side);
+        side = sl > 1e-4 ? side / sl : vec3(1.0, 0.0, 0.0);
+        float w = max(uWidth * dist / max(uPx, 1.0), uMinW);
+        wp += side * (w * aSide);
+        vWorld = wp; vTan = tw;
+        gl_Position = projectionMatrix * viewMatrix * vec4(wp, 1.0);
+      }`,
+    fragmentShader: /* glsl */`
+      ${UTIL}${FOG}${LIGHT}
+      uniform vec3 uRoot, uTip;
+      uniform float uAlpha, uAmbient, uFall, uVivid;
+      varying float vT; varying vec3 vWorld; varying vec3 vTan;
+      void main(){
+        vec3 V = cameraPosition - vWorld;
+        float dist = length(V);
+        V /= max(dist, 1e-4);
+        // normale d'un cylindre vu de face : perpendiculaire à l'axe, vers l'œil
+        vec3 N = normalize(V - vTan * dot(vTan, V));
+        vec3 base = mix(uRoot, uTip, vT);
+        vec3 col = hbRig(base, N, V, 1.0, 0.7, 22.0, 0.5);
+        col += base * uAmbient / (1.0 + uFall * dist * dist);
+        col = hbSaturate(col, uVivid);
+        col = hbFog(col, dist);
+        gl_FragColor = vec4(col, uAlpha);
+      }`,
+  });
+}
+
+/**
+ * Faisceau de filins. `pairs` est un tableau de couples de Vector3 mis à jour
+ * de l'extérieur : `update()` recopie la ligne brisée dans la géométrie.
+ * `sag` creuse légèrement le filin, sinon un cordage tendu paraît rigide.
+ */
+export function strands(count, segs = 6, o = {}) {
+  const vPer = (segs + 1) * 2;
+  const pos = new Float32Array(count * vPer * 3);
+  const tan = new Float32Array(count * vPer * 3);
+  const side = new Float32Array(count * vPer);
+  const tt = new Float32Array(count * vPer);
+  const idx = [];
+  for (let c = 0; c < count; c++) {
+    const o0 = c * vPer;
+    for (let s = 0; s <= segs; s++) {
+      side[o0 + s * 2] = -1; side[o0 + s * 2 + 1] = 1;
+      tt[o0 + s * 2] = tt[o0 + s * 2 + 1] = s / segs;
+      if (s < segs) {
+        const a = o0 + s * 2;
+        idx.push(a, a + 1, a + 2, a + 1, a + 3, a + 2);
+      }
+    }
+  }
+  const geo = new THREE.BufferGeometry();
+  const pa = new THREE.BufferAttribute(pos, 3); pa.setUsage(THREE.DynamicDrawUsage);
+  const ta = new THREE.BufferAttribute(tan, 3); ta.setUsage(THREE.DynamicDrawUsage);
+  geo.setAttribute('position', pa);
+  geo.setAttribute('aTan', ta);
+  geo.setAttribute('aSide', new THREE.BufferAttribute(side, 1));
+  geo.setAttribute('aT', new THREE.BufferAttribute(tt, 1));
+  geo.setIndex(idx);
+  geo.boundingSphere = new THREE.Sphere(new THREE.Vector3(), 1e5);
+  const mesh = new THREE.Mesh(geo, strandMat(o));
+  mesh.frustumCulled = false;
+
+  const _a = new THREE.Vector3(), _b = new THREE.Vector3(), _p = new THREE.Vector3(), _q = new THREE.Vector3();
+  const sag = o.sag ?? 0;
+  /** `get(i, a, b)` remplit a et b avec les deux extrémités du filin i. */
+  function update(get, n = count) {
+    for (let c = 0; c < n; c++) {
+      get(c, _a, _b);
+      const o0 = c * vPer;
+      for (let s = 0; s <= segs; s++) {
+        const u = s / segs;
+        _p.lerpVectors(_a, _b, u);
+        _p.y -= Math.sin(u * Math.PI) * sag;
+        // tangente : différence avec le point suivant (ou précédent au bout)
+        const u2 = s < segs ? (s + 1) / segs : (s - 1) / segs;
+        _q.lerpVectors(_a, _b, u2);
+        _q.y -= Math.sin(u2 * Math.PI) * sag;
+        _q.sub(_p); if (s === segs) _q.negate();
+        if (_q.lengthSq() < 1e-8) _q.set(0, 1, 0); else _q.normalize();
+        const k = (o0 + s * 2) * 3;
+        pos[k] = pos[k + 3] = _p.x; pos[k + 1] = pos[k + 4] = _p.y; pos[k + 2] = pos[k + 5] = _p.z;
+        tan[k] = tan[k + 3] = _q.x; tan[k + 1] = tan[k + 4] = _q.y; tan[k + 2] = tan[k + 5] = _q.z;
+      }
+    }
+    geo.setDrawRange(0, n * segs * 6);
+    pa.needsUpdate = true; ta.needsUpdate = true;
+  }
+  return { mesh, update };
 }
 
 /* Construit une géométrie instanciée à partir d'une géométrie source. */

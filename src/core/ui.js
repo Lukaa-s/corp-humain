@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { STATIONS, FINALE, t } from '../content/stations.js';
 import { MISSIONS } from '../content/missions.js';
+import { clamp } from './build.js';
 
 const $ = (s) => document.querySelector(s);
 const el = (tag, cls, html) => { const e = document.createElement(tag); if (cls) e.className = cls; if (html != null) e.innerHTML = html; return e; };
@@ -8,19 +9,21 @@ const el = (tag, cls, html) => { const e = document.createElement(tag); if (cls)
 const TIPS = {
   e: [
     '<b>Z Q S D</b> pour voler, la <b>souris</b> pour regarder.',
-    'Vole <b>dans</b> les pastilles vertes pour les ramasser.',
+    'Vise un cercle et appuie sur <b>E</b> : il te raconte ce qu’il montre.',
+    'Vole <b>dans</b> les pastilles pour les ramasser.',
     'Bloqué ? Appuie sur <b>G</b> : on t’emmène à ta mission.',
     'Il y a une <b>relique dorée</b> cachée dans chaque escale.',
-    'Clique sur les <b>points bleus</b> : ils racontent quelque chose.',
+    '<b>Échap</b> te rend le curseur de la souris.',
     'Touche <b>H</b> pour cacher l’écran et prendre une belle photo.',
   ],
   a: [
     '<b>Espace</b> monte, <b>Ctrl</b> descend.',
+    'Le cercle d’un repère a la taille réelle de ce qu’il désigne.',
+    'Visez un cercle, puis <b>E</b> : la sonde s’y pose et la fiche s’ouvre.',
     '<b>G</b> : la sonde vous emmène jusqu’à la mission en cours.',
-    'Les pastilles se ramassent en volant dedans.',
     'Une relique est cachée au large de chaque escale, sans repère.',
-    'Molette : <b>focale</b> de la sonde.',
-    '<b>H</b> masque l’interface — mode contemplation.',
+    '<b>Échap</b> relâche la souris. Molette : focale.',
+    '<b>H</b> masque l’interface : mode contemplation.',
   ],
 };
 
@@ -145,7 +148,7 @@ export class UI {
     if (this.openKey) this.openCard(this.openKey, true);
     for (const h of this.spots) {
       const s = STATIONS[this.index];
-      h.node.querySelector('.hotspot-label').textContent = t(s.spots[h.key].label, age);
+      h.node.querySelector('.hs-label').textContent = t(s.spots[h.key].label, age);
     }
     this._rotateTip();
   }
@@ -156,7 +159,11 @@ export class UI {
     this.seen.add(index);
     this.closeCard();
     this._chrome();
-    this.narrate(t(this.station.intro, this.age), 11000);
+  }
+
+  /** Première phrase à l'arrivée, une fois le carton de chapitre retiré. */
+  arrive() {
+    if (this.station) this.narrate(t(this.station.intro, this.age), 11000);
   }
 
   /* ─────────────── carnet de missions ─────────────── */
@@ -171,11 +178,36 @@ export class UI {
       const count = m.type === 'collect' ? ` <i>${Math.min(picked, m.n)}/${m.n}</i>` : '';
       li.innerHTML = `<span class="quest-tick" aria-hidden="true">
           <svg viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg>
-        </span><span class="quest-text">${t(m.label, this.age)}${count}</span>`;
+        </span><span class="quest-text">${t(m.label, this.age)}${count}</span><span class="quest-range"></span>`;
       list.appendChild(li);
     }
     $('#quests-count').textContent = `${done.size}/${missions.length}`;
     $('#quests').hidden = missions.length === 0;
+  }
+
+  /**
+   * Jauge d'approche sur l'objectif en cours. « Il ne se passe rien » venait
+   * de là : on ne savait pas si on était à dix mètres ou à mille, ni à partir
+   * de quand ça compte. La ligne se remplit à mesure qu'on approche et bascule
+   * en « à portée » dès que la validation est acquise.
+   */
+  setQuestRange(id, dist, radius) {
+    const list = $('#quest-list');
+    if (!list) return;
+    for (const li of list.children) {
+      const on = !!id && li.dataset.id === id && !li.classList.contains('done');
+      li.classList.toggle('active', on);
+      if (!on) { if (li.dataset.range) { li.dataset.range = ''; li.style.removeProperty('--near'); } continue; }
+      const near = radius > 0 ? clamp(1 - (dist - radius) / Math.max(radius * 6, 120), 0, 1) : 0;
+      li.style.setProperty('--near', near.toFixed(3));
+      const txt = dist < radius ? 'à portée' : `${Math.round(dist)} m`;
+      if (li.dataset.range !== txt) {
+        li.dataset.range = txt;
+        const tag = li.querySelector('.quest-range');
+        if (tag) tag.textContent = txt;
+      }
+      li.classList.toggle('inrange', dist < radius);
+    }
   }
 
   updateQuests(done, picked) {
@@ -342,69 +374,148 @@ export class UI {
     if (was) this.cb.onRead?.(false);
   }
 
-  /* ─────────────── points d'intérêt ─────────────── */
+  /* ─────────────── repères ───────────────
+     Un repère n'est plus une pastille posée dans le vide : c'est un cercle
+     dont le rayon à l'écran est celui de l'objet désigné, projeté. Une
+     villosité fait un petit cercle, un ventricule un grand. On voit donc
+     tout de suite ce que l'étiquette montre. */
   buildHotspots(world) {
     this.hotspotLayer.innerHTML = '';
     this.spots = [];
     const s = STATIONS[this.index];
-    for (const key in (world.spots || {})) {
-      if (!s.spots || !s.spots[key] || !world.spots[key]) continue;
+    const info = world.spotInfo || {};
+    for (const key in info) {
+      if (!s.spots || !s.spots[key] || !info[key]) continue;
       const node = el('button', 'hotspot');
       node.dataset.key = key;
-      node.innerHTML = `<span class="hotspot-ring"></span><span class="hotspot-label"></span>`;
-      node.querySelector('.hotspot-label').textContent = t(s.spots[key].label, this.age);
+      node.innerHTML = `<i class="hs-ring"></i><i class="hs-dot"></i><i class="hs-lead"></i><span class="hs-label"></span>`;
+      node.querySelector('.hs-label').textContent = t(s.spots[key].label, this.age);
       node.addEventListener('click', (e) => { e.stopPropagation(); this.goTo(key); });
       this.hotspotLayer.appendChild(node);
-      this.spots.push({ key, pos: world.spots[key].clone(), node, vis: false, far: world.spotFar ?? 900 });
+      this.spots.push({
+        key, node, vis: false, crowded: false,
+        pos: info[key].p.clone(),
+        radius: info[key].r ?? 24,
+        far: info[key].far ?? world.spotFar ?? 900,
+      });
     }
+    this.aimKey = null;
   }
 
+  /**
+   * Projette les repères. Renvoie la clé de celui qui est sous le réticule,
+   * pour que « E » et le clic aient exactement la même cible que l'œil.
+   */
   updateHotspots(camera, w, h) {
-    if (!this.spots.length) return;
     const cx = w / 2, cy = h / 2;
+    // demi-hauteur du plan image à un mètre : sert à projeter un rayon monde
+    const kPx = (h * 0.5) / Math.tan(camera.fov * Math.PI / 360);
+
     for (const s of this.spots) {
       this._v.copy(s.pos).project(camera);
       const d = camera.position.distanceTo(s.pos);
       const inFront = this._v.z < 1;
       const x = (this._v.x * 0.5 + 0.5) * w, y = (-this._v.y * 0.5 + 0.5) * h;
-      const onScreen = inFront && x > -60 && x < w + 60 && y > -40 && y < h + 40;
-      const show = onScreen && d < s.far;
+      const rPx = clamp(s.radius * kPx / Math.max(d, 1), 13, h * 0.3);
+      const onScreen = inFront && x > -rPx - 40 && x < w + rPx + 40 && y > -rPx - 40 && y < h + rPx + 40;
+      // dedans, ou presque : le cercle deviendrait un arc géant traversant
+      // l'écran, ce qui se lit comme un trait perdu et non comme une désignation
+      const inside = d < s.radius * 0.9;
+      const show = onScreen && d < s.far && !inside;
       if (show !== s.vis) { s.node.style.display = show ? '' : 'none'; s.vis = show; }
       if (!show) continue;
-      s.node.style.transform = `translate(${x}px, ${y}px) translate(-50%, -50%)`;
-      s.node.style.opacity = String(Math.min(1, Math.max(0.25, 1.35 - d / 2400)));
-      s.sx = x; s.sy = y; s.d = d;
-      s.node.classList.toggle('near', Math.hypot(x - cx, y - cy) < 90);
+      s.node.style.transform = `translate(${x.toFixed(1)}px, ${y.toFixed(1)}px)`;
+      s.node.style.setProperty('--r', `${rPx.toFixed(1)}px`);
+      s.node.style.opacity = String(clamp(1.5 - d / (s.far * 1.15), 0.3, 1));
+      s.sx = x; s.sy = y; s.d = d; s.rPx = rPx;
+      // « visé » = le réticule tombe dans le cercle, ou tout près de son centre
+      s.aimed = Math.hypot(x - cx, y - cy) < Math.max(rPx * 0.95, 62);
     }
-    // deux repères superposés : seul le plus proche garde son libellé
+
+    // deux cercles l'un sur l'autre : le plus proche garde son étiquette
     const vis = this.spots.filter(s => s.vis).sort((a, b) => a.d - b.d);
     for (let i = 0; i < vis.length; i++) {
       let hide = false;
       for (let j = 0; j < i; j++) {
-        if (!vis[j].crowded && Math.hypot(vis[i].sx - vis[j].sx, vis[i].sy - vis[j].sy) < 132) { hide = true; break; }
+        if (!vis[j].crowded && Math.hypot(vis[i].sx - vis[j].sx, vis[i].sy - vis[j].sy) < 128) { hide = true; break; }
       }
       vis[i].crowded = hide;
       vis[i].node.classList.toggle('crowded', hide);
     }
+
+    // un seul repère visé à la fois : le plus proche du centre
+    let aim = null;
+    for (const s of vis) {
+      if (!s.aimed) continue;
+      const dc = Math.hypot(s.sx - cx, s.sy - cy);
+      if (!aim || dc < aim.dc) aim = { s, dc };
+    }
+    for (const s of this.spots) s.node.classList.toggle('near', !!aim && aim.s === s);
+    this.aimKey = aim ? aim.s.key : null;
+    this._aimHint(aim ? aim.s : null);
+    return this.aimKey;
   }
 
+  _aimHint(spot) {
+    const open = !!this.openKey;
+    document.body.classList.toggle('aiming', !!spot && !open);
+    if (spot && !open) {
+      const label = t(STATIONS[this.index].spots[spot.key].label, this.age);
+      const txt = `E · ${label}`;
+      if (txt !== this._hintTxt) { $('#ret-hint').textContent = txt; this._hintTxt = txt; }
+    }
+  }
+
+  /** Réticule visible dès qu'on pilote : c'est lui qui désigne, pas le curseur. */
+  setReticle(on) { $('#reticle').hidden = !on; }
+
   /**
-   * Clic sur un repère : la sonde va se placer devant, puis la fiche s'ouvre.
-   * C'est ce qui remplace l'ancien rail — on demande, on est emmené.
+   * Boussole d'objectif : une flèche posée sur le bord de l'écran quand la
+   * cible de la mission est hors champ, avec la distance qui reste. Sans elle,
+   * « atteins le sommet d'un poil » revient à chercher au hasard.
    */
+  updateCompass(camera, w, h, target, label) {
+    const c = $('#compass');
+    if (!target) { if (!c.hidden) c.hidden = true; return; }
+    this._v.copy(target).project(camera);
+    const behind = this._v.z > 1;
+    let x = (this._v.x * 0.5 + 0.5) * w, y = (-this._v.y * 0.5 + 0.5) * h;
+    if (behind) { x = w - x; y = h - y; }
+    const cx = w / 2, cy = h / 2;
+    const m = 76;
+    const inside = !behind && x > m && x < w - m && y > m && y < h - m;
+    const d = camera.position.distanceTo(target);
+    if (inside) { if (!c.hidden) c.hidden = true; return; }
+
+    // on ramène le point sur le cadre intérieur, en gardant sa direction
+    let dx = x - cx, dy = y - cy;
+    const sc = Math.min((w / 2 - m) / Math.abs(dx || 1e-6), (h / 2 - m) / Math.abs(dy || 1e-6));
+    dx *= sc; dy *= sc;
+    c.hidden = false;
+    c.style.transform = `translate(${(cx + dx).toFixed(0)}px, ${(cy + dy).toFixed(0)}px) translate(-50%, -50%)`;
+    c.querySelector('svg').style.transform = `rotate(${(Math.atan2(dy, dx) * 180 / Math.PI + 90).toFixed(0)}deg)`;
+    const txt = `${label} · ${Math.round(d)} m`;
+    if (txt !== this._compassTxt) { $('#compass-label').textContent = txt; this._compassTxt = txt; }
+  }
+
+  /** Clic ou « E » sur un repère : la sonde va se placer devant, puis la fiche s'ouvre. */
   goTo(key) {
     const s = this.spots.find(x => x.key === key);
     if (!s) return;
     this.cb.onSpot();
-    this.cb.onTravel(s.pos, () => this.openCard(key));
+    this.cb.onTravel(key, () => this.openCard(key));
   }
 
-  /** Ouvre le repère le plus proche d'un point de l'écran. */
+  /**
+   * Ouvre le repère visé. Quand la souris est capturée, ses coordonnées ne
+   * bougent plus : c'est le réticule qui désigne, donc on passe par `aimKey`.
+   */
   pickAt(x, y, radius = 90) {
+    if (x == null) { if (this.aimKey) { this.goTo(this.aimKey); return true; } return false; }
     let best = null, bd = radius;
     for (const s of this.spots) {
       if (!s.vis) continue;
-      const d = Math.hypot(s.sx - x, s.sy - y);
+      const d = Math.max(0, Math.hypot(s.sx - x, s.sy - y) - s.rPx * 0.9);
       if (d < bd) { bd = d; best = s; }
     }
     if (best) { this.goTo(best.key); return true; }
@@ -447,10 +558,33 @@ export class UI {
     this.cb.onRead?.(open);
   }
 
-  transit(on) { $('#transit').classList.toggle('on', on); }
+  /**
+   * Carton de chapitre. On l'affiche AVANT de construire l'escale suivante :
+   * la construction bloque le fil principal une seconde ou deux, et sans ce
+   * masque opaque on voyait l'image se figer, ce qui passait pour un plantage.
+   * `show()` rend la main dès que l'écran est réellement peint.
+   */
+  async transit(index, dir = 1) {
+    const s = STATIONS[index];
+    const t2 = $('#transit');
+    document.documentElement.style.setProperty('--accent-station', s.accent);
+    $('#transit-step').textContent = `Escale ${String(index + 1).padStart(2, '0')} sur ${String(STATIONS.length).padStart(2, '0')}`;
+    $('#transit-name').textContent = t(s.name, this.age);
+    $('#transit-link').innerHTML = t(dir < 0 ? (s.back || s.link) : s.link, this.age) || '';
+    t2.hidden = false;
+    // deux images pour que le navigateur peigne l'écran, puis la durée du fondu
+    await raf(); await raf();
+    t2.classList.add('on');
+    await wait(360);
+  }
 
-  loader(on, label) {
-    $('#loader').hidden = !on;
-    if (label) $('#loader-station').textContent = label;
+  transitDone() {
+    const t2 = $('#transit');
+    t2.classList.remove('on');
+    clearTimeout(this._tt);
+    this._tt = setTimeout(() => { t2.hidden = true; }, 400);
   }
 }
+
+const raf = () => new Promise(r => requestAnimationFrame(r));
+const wait = (ms) => new Promise(r => setTimeout(r, ms));

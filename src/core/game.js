@@ -171,6 +171,7 @@ export class Game {
   update(dt, cam) {
     if (!this.def) return;
     const p = cam.position;
+    this._cam = p;
 
     if (this.samples) {
       const { alive, pos } = this.samples;
@@ -203,6 +204,17 @@ export class Game {
   }
 
   /* ─────────── missions ─────────── */
+
+  /**
+   * Rayon de validation d'un objectif « atteindre ». On le dérive de la taille
+   * de l'objet quand l'escale la déclare : arriver au sommet d'un poil doit
+   * compter dès qu'on est visiblement dessus, pas au centimètre près.
+   */
+  reachRadius(m) {
+    const info = this.spotInfo?.[m.spot];
+    return Math.max(m.r ?? 0, info ? info.r * 2.4 : 0, 40);
+  }
+
   _checkMissions(cam) {
     const list = this.def?.missions || [];
     for (const m of list) {
@@ -210,7 +222,7 @@ export class Game {
       let ok = false;
       if (m.type === 'reach') {
         const target = this.spotPos?.[m.spot];
-        if (target) ok = cam.position.distanceTo(target) < (m.r ?? 150);
+        if (target) ok = cam.position.distanceTo(target) < this.reachRadius(m);
       } else if (m.type === 'collect') {
         ok = this.picked >= (m.n ?? this.total);
       }
@@ -245,20 +257,32 @@ export class Game {
     this.cb.onScore?.(this.save.score);
   }
 
-  /** Position d'un objectif encore à faire, pour le bouton « m'y emmener ». */
+  /**
+   * Objectif en cours : où il est, d'où on le regarde bien, et à partir de
+   * quelle distance il compte comme atteint. Sert au bouton « m'y emmener »,
+   * à la boussole et à la jauge d'approche du carnet.
+   */
   guideTarget() {
     for (const m of (this.def?.missions || [])) {
       if (this.done.has(m.id)) continue;
       if ((m.type === 'reach' || m.type === 'read') && this.spotPos?.[m.spot]) {
-        return { point: this.spotPos[m.spot], mission: m };
+        const info = this.spotInfo?.[m.spot];
+        return {
+          point: this.spotPos[m.spot], view: info?.view || null, mission: m,
+          radius: m.type === 'reach' ? this.reachRadius(m) : 0,
+        };
       }
       if (m.type === 'collect' && this.samples) {
+        // le plus proche encore en place : la boussole doit pointer celui-là
         const { alive, pos } = this.samples;
+        let best = null, bd = Infinity;
         for (let i = 0; i < alive.count; i++) {
-          if (alive.array[i] > 0.5) {
-            return { point: new THREE.Vector3(pos[i * 3], pos[i * 3 + 1], pos[i * 3 + 2]), mission: m };
-          }
+          if (alive.array[i] < 0.5) continue;
+          const p = this._v.set(pos[i * 3], pos[i * 3 + 1], pos[i * 3 + 2]);
+          const d = p.distanceToSquared(this._cam || p);
+          if (d < bd) { bd = d; best = p.clone(); }
         }
+        if (best) return { point: best, view: null, mission: m, radius: this.def.pickRadius ?? 46 };
       }
     }
     return null;

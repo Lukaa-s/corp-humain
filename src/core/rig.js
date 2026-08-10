@@ -83,12 +83,15 @@ export class Rig {
     });
     const end = (e) => {
       if (this.drag && e.pointerId === this.drag.id) {
-        if (this.drag.moved < 5 && this.onTap) this.onTap(e);
+        const wasTap = this.drag.moved < 5;
         this.drag = null;
+        this._release(e.pointerId);
+        if (wasTap && this.onTap) this.onTap(e);
       }
     };
     d.addEventListener('pointerup', end);
     d.addEventListener('pointercancel', end);
+    d.addEventListener('lostpointercapture', () => { this.drag = null; });
 
     d.addEventListener('wheel', (e) => {
       e.preventDefault();
@@ -98,11 +101,22 @@ export class Rig {
     document.addEventListener('pointerlockchange', () => {
       this.locked = document.pointerLockElement === d;
       document.body.classList.toggle('locked', this.locked);
+      // une capture laissée en place après un changement de mode avale tous
+      // les clics suivants : plus rien n'est cliquable dans l'interface
+      if (this.drag) { this._release(this.drag.id); this.drag = null; }
+    });
+    document.addEventListener('pointerlockerror', () => {
+      this.locked = false;
+      document.body.classList.remove('locked');
     });
   }
 
+  _release(id) {
+    try { if (this.dom.hasPointerCapture?.(id)) this.dom.releasePointerCapture(id); } catch { /* déjà relâchée */ }
+  }
+
   requestLock() { if (!this.locked && !this.frozen && this.dom.requestPointerLock) this.dom.requestPointerLock(); }
-  releaseLock() { if (this.locked) document.exitPointerLock(); }
+  releaseLock() { if (this.locked && document.exitPointerLock) document.exitPointerLock(); }
 
   _look(dx, dy, k) {
     this.tYaw -= dx * k;
@@ -133,15 +147,23 @@ export class Rig {
   }
 
   /**
-   * Emmène la sonde devant un point. On l'approche depuis le côté où elle se
-   * trouve déjà : c'est le trajet qui a le moins de chances de traverser une
-   * paroi. Toute commande de vol annule le voyage.
+   * Emmène la sonde devant un point. Si l'escale a prévu un poste
+   * d'observation (`view`), on s'y pose exactement : c'est ce qui garantit
+   * qu'on voit l'objet sous le bon angle et à la bonne distance. Sinon on
+   * l'approche depuis le côté où la sonde se trouve déjà, ce qui est le
+   * trajet qui a le moins de chances de traverser une paroi.
+   * Toute commande de vol annule le voyage.
    */
-  travelTo(target, { dist = 90, ms = 1800, onArrive = null } = {}) {
-    const away = this._p.subVectors(this.pos, target);
-    const d = away.length();
-    if (d < 1e-3) away.set(0, 0.15, 1); else away.multiplyScalar(1 / d);
-    const dest = target.clone().addScaledVector(away, Math.max(dist, 8));
+  travelTo(target, { view = null, dist = 90, ms = 1800, onArrive = null } = {}) {
+    let dest;
+    if (view) {
+      dest = view.clone();
+    } else {
+      const away = this._p.subVectors(this.pos, target);
+      const d = away.length();
+      if (d < 1e-3) away.set(0, 0.15, 1); else away.multiplyScalar(1 / d);
+      dest = target.clone().addScaledVector(away, Math.max(dist, 8));
+    }
     this.travel = {
       from: this.pos.clone(), to: dest, look: target.clone(),
       t: 0, dur: Math.max(0.4, ms / 1000),

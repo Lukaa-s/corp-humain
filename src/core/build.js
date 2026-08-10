@@ -126,18 +126,155 @@ export function channelTube(channel, z0, z1, opts = {}) {
   return g;
 }
 
+/**
+ * Surface de révolution autour de l'axe Z. `profile(t)` renvoie `[z, r]`.
+ * Les normales pointent vers l'intérieur : on est dedans, pas dehors.
+ * `warp(t, ang)` ajoute un relief radial (bourrelets, trabécules).
+ */
+export function revolveZ(profile, opts = {}) {
+  const seg = opts.segments ?? 160, rad = opts.radial ?? 96;
+  const warp = opts.warp ?? null;
+  const pos = [], nor = [], uvs = [], idx = [];
+  const P = [];
+  for (let i = 0; i <= seg; i++) P.push(profile(i / seg));
+  for (let i = 0; i <= seg; i++) {
+    const t = i / seg;
+    const [z, r0] = P[i];
+    // pente du profil : sert à orienter la normale sur les calottes
+    const [zp, rp] = P[Math.max(0, i - 1)], [zn, rn] = P[Math.min(seg, i + 1)];
+    const dz = zn - zp, dr = rn - rp;
+    const sl = Math.hypot(dz, dr) || 1;
+    for (let j = 0; j <= rad; j++) {
+      const a = (j / rad) * Math.PI * 2;
+      const ca = Math.cos(a), sa = Math.sin(a);
+      const r = r0 + (warp ? warp(t, a) : 0);
+      pos.push(ca * r, sa * r, z);
+      // normale extérieure = (dz*cos, dz*sin, -dr) / |…| ; on la retourne
+      nor.push(-ca * dz / sl, -sa * dz / sl, dr / sl);
+      uvs.push((j / rad) * (opts.uRepeat ?? 1), t * (opts.vRepeat ?? 1));
+    }
+  }
+  for (let i = 0; i < seg; i++) {
+    for (let j = 0; j < rad; j++) {
+      const a = i * (rad + 1) + j, b = a + rad + 1;
+      idx.push(a, b, a + 1, b, b + 1, a + 1);
+    }
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  g.setAttribute('normal', new THREE.Float32BufferAttribute(nor, 3));
+  g.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
+  g.setIndex(idx);
+  g.computeBoundingSphere();
+  return g;
+}
+
+/**
+ * Plafond percé : un disque bombé dans lequel on retire les mailles qui
+ * tombent dans un orifice. Sert à fermer une cavité en laissant passer ses
+ * portes — le plancher des valves, la lame criblée d'un lobule.
+ * `holes` : [{ x, y, r }]. `height(rn)` : hauteur du dôme, 0 au bord.
+ */
+export function piercedCap(radius, holes, opts = {}) {
+  const rings = opts.rings ?? 44, sectors = opts.sectors ?? 128;
+  const height = opts.height ?? (() => 0);
+  const z0 = opts.z ?? 0, flip = opts.flip ? -1 : 1;
+  const pos = [], nor = [], uvs = [], idx = [];
+  const inHole = (x, y) => holes.some(h => Math.hypot(x - h.x, y - h.y) < h.r);
+  const zAt = (rn) => z0 + height(rn) * flip;
+  for (let i = 0; i <= rings; i++) {
+    const rn = i / rings;
+    const r = rn * radius;
+    for (let j = 0; j <= sectors; j++) {
+      const a = (j / sectors) * Math.PI * 2;
+      const x = Math.cos(a) * r, y = Math.sin(a) * r;
+      const z = zAt(rn);
+      // normale par différences finies sur la hauteur du dôme
+      const dz = (zAt(Math.min(1, rn + 0.02)) - zAt(Math.max(0, rn - 0.02))) / (0.04 * radius);
+      const n = new THREE.Vector3(-dz * Math.cos(a), -dz * Math.sin(a), 1).normalize().multiplyScalar(-flip);
+      pos.push(x, y, z); nor.push(n.x, n.y, n.z); uvs.push(rn, j / sectors);
+    }
+  }
+  const used = new Uint8Array(pos.length / 3);
+  for (let i = 0; i < rings; i++) {
+    for (let j = 0; j < sectors; j++) {
+      const rn = (i + 0.5) / rings, a = ((j + 0.5) / sectors) * Math.PI * 2;
+      if (inHole(Math.cos(a) * rn * radius, Math.sin(a) * rn * radius)) continue;
+      const A = i * (sectors + 1) + j, B = A + sectors + 1;
+      idx.push(A, B, A + 1, B, B + 1, A + 1);
+      used[A] = used[A + 1] = used[B] = used[B + 1] = 1;
+    }
+  }
+  // Toute la première couronne de sommets autour d'un orifice est rabattue
+  // sur son cercle. Ne rabattre que les sommets intérieurs laissait un bord
+  // en escalier, et une découpe en dents de scie se lit immédiatement comme
+  // un défaut de fabrication.
+  const band = (radius / rings) * 1.4;
+  for (let v = 0; v < used.length; v++) {
+    if (!used[v]) continue;
+    const x = pos[v * 3], y = pos[v * 3 + 1];
+    for (const h of holes) {
+      const dx = x - h.x, dy = y - h.y, d = Math.hypot(dx, dy);
+      if (d < h.r + band && d > 1e-6) {
+        pos[v * 3] = h.x + dx / d * h.r;
+        pos[v * 3 + 1] = h.y + dy / d * h.r;
+        break;
+      }
+    }
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  g.setAttribute('normal', new THREE.Float32BufferAttribute(nor, 3));
+  g.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
+  g.setIndex(idx);
+  g.computeBoundingSphere();
+  return g;
+}
+
+/**
+ * Recoud les sommets identiques et renvoie une géométrie indexée.
+ * IcosahedronGeometry sort non indexée : chaque triangle a ses propres
+ * sommets, et `computeVertexNormals` produit donc des normales plates. Tout
+ * ce qui en dérivait paraissait taillé à la serpe, facettes et arêtes noires
+ * comprises. Recoudre corrige le lissage et divise le nombre de sommets par
+ * six au passage.
+ */
+export function weldPositions(geo, eps) {
+  const p = geo.attributes.position;
+  const k = 1 / Math.max(eps, 1e-9);
+  const map = new Map();
+  const pos = [], idx = new Uint32Array(p.count);
+  for (let i = 0; i < p.count; i++) {
+    const x = p.getX(i), y = p.getY(i), z = p.getZ(i);
+    const key = `${Math.round(x * k)}|${Math.round(y * k)}|${Math.round(z * k)}`;
+    let j = map.get(key);
+    if (j === undefined) { j = pos.length / 3; map.set(key, j); pos.push(x, y, z); }
+    idx[i] = j;
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  g.setIndex(new THREE.BufferAttribute(idx, 1));
+  return g;
+}
+
 /* Sphère déformée par une fonction de bruit — base de la plupart des organes. */
 export function blob(radius, detail, fn, seed = 1) {
-  const g = new THREE.IcosahedronGeometry(radius, detail);
+  const src = new THREE.IcosahedronGeometry(radius, detail);
+  const g = weldPositions(src, radius * 1e-3);
+  src.dispose();
   const p = g.attributes.position;
   const v = new THREE.Vector3();
+  const uv = new Float32Array(p.count * 2);
   for (let i = 0; i < p.count; i++) {
     v.fromBufferAttribute(p, i);
     const n = v.clone().normalize();
+    uv[i * 2] = (Math.atan2(n.z, n.x) / (Math.PI * 2)) + 0.5;
+    uv[i * 2 + 1] = Math.asin(clamp(n.y, -1, 1)) / Math.PI + 0.5;
     const d = fn(n, v, seed);
     v.addScaledVector(n, d);
     p.setXYZ(i, v.x, v.y, v.z);
   }
+  g.setAttribute('uv', new THREE.BufferAttribute(uv, 2));
   g.computeVertexNormals();
   g.computeBoundingSphere();
   return g;

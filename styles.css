@@ -88,19 +88,55 @@ kbd {
   transition: opacity .6s var(--ease);
 }
 
+/* ─────────────── transit : le carton de chapitre ───────────────
+   Pendant la construction d'une escale, le fil principal est bloqué une
+   seconde ou deux. Tout ce qui bouge ici n'anime donc que transform et
+   opacity, les deux propriétés que le compositeur sait jouer seul : l'écran
+   reste vivant pendant le gel au lieu de se figer sur une image. */
 #transit {
-  position: fixed; inset: 0; z-index: 60; pointer-events: none; opacity: 0;
-  background: radial-gradient(60% 60% at 50% 50%, rgba(255,236,222,.95), rgba(214,66,90,.72) 42%, rgba(6,4,8,.98) 90%);
-  transition: opacity .42s var(--ease);
+  position: fixed; inset: 0; z-index: 60; pointer-events: all;
+  display: grid; place-items: center;
+  padding: calc(24px + var(--sat)) 24px calc(24px + var(--sab));
+  background: radial-gradient(130% 100% at 50% 34%, #150f1b 0%, #0a0810 52%, #040309 100%);
+  opacity: 0; transition: opacity .34s var(--ease);
 }
+#transit[hidden] { display: none; }
 #transit.on { opacity: 1; }
-.transit-core {
-  position: absolute; inset: 0;
-  background: repeating-conic-gradient(from 0deg at 50% 50%, rgba(255,255,255,.10) 0deg 2deg, transparent 2deg 7deg);
-  opacity: 0; transform: scale(.4);
-  transition: transform .5s var(--ease-out), opacity .5s var(--ease);
+
+.transit-inner { text-align: center; max-width: 560px; }
+
+.transit-orbit { position: relative; width: 92px; height: 92px; margin: 0 auto 30px; }
+.transit-orbit i {
+  position: absolute; inset: 0; border-radius: 50%;
+  border: 1px solid transparent; border-top-color: var(--accent-station, var(--accent));
+  animation: spin 1.4s linear infinite;
 }
-#transit.on .transit-core { opacity: .8; transform: scale(2.2); }
+.transit-orbit i:nth-child(2) { inset: 13px; border-top-color: var(--blood); animation-duration: 2.2s; animation-direction: reverse; }
+.transit-orbit i:nth-child(3) { inset: 26px; border-top-color: rgba(255,255,255,.42); animation-duration: 3.1s; }
+@keyframes spin { to { transform: rotate(360deg) } }
+
+.transit-step {
+  font: 500 11px/1 var(--font-mono); letter-spacing: .26em; text-transform: uppercase;
+  color: var(--accent-station, var(--muted)); margin: 0 0 12px;
+}
+.transit-name { font-family: var(--font-display); font-size: clamp(28px, 5vw, 42px); margin: 0 0 14px; color: var(--ink); font-weight: 400; }
+.transit-link { margin: 0 auto; max-width: 46ch; color: var(--muted); font-size: 14.5px; line-height: 1.62; }
+
+.transit-bar {
+  width: min(240px, 60vw); height: 2px; margin: 30px auto 0; overflow: hidden;
+  background: rgba(255,255,255,.10); border-radius: 2px;
+}
+.transit-bar i {
+  display: block; height: 100%; width: 100%; border-radius: inherit;
+  background: var(--accent-station, var(--accent));
+  transform: scaleX(0); transform-origin: left center;
+}
+/* la barre avance toute seule, au compositeur : elle ne dépend pas du fil
+   principal, donc elle continue de courir pendant la construction */
+#transit.on .transit-bar i { animation: transitFill 2.4s var(--ease-out) forwards; }
+@keyframes transitFill {
+  0% { transform: scaleX(0) } 55% { transform: scaleX(.72) } 100% { transform: scaleX(1) }
+}
 
 /* ─────────────── écrans plein cadre ─────────────── */
 
@@ -138,9 +174,11 @@ kbd {
 
 .title {
   font-family: var(--font-display);
-  font-size: clamp(52px, 13.5vw, 168px);
-  line-height: .84; font-weight: 400; letter-spacing: clamp(.02em, 1.4vw, .16em);
-  margin: 0 0 22px; padding-left: clamp(.02em, 1.4vw, .16em);
+  /* neuf lettres très espacées : au-delà, le R final sortait du cadre */
+  font-size: clamp(46px, 11.2vw, 146px);
+  line-height: .84; font-weight: 400; letter-spacing: clamp(.02em, 1.1vw, .13em);
+  margin: 0 0 22px; padding-left: clamp(.02em, 1.1vw, .13em);
+  max-width: 100%;
   background: linear-gradient(174deg, #fffaf3 8%, #e9d9cd 42%, #b98b8e 78%, #7d4f60 100%);
   -webkit-background-clip: text; background-clip: text; color: transparent;
   filter: drop-shadow(0 6px 40px rgba(217,69,92,.28));
@@ -149,7 +187,13 @@ body[data-age="enfant"] .title { font-weight: 800; letter-spacing: .01em; paddin
 
 .subtitle {
   font-size: clamp(15px, 1.6vw, 18.5px); line-height: 1.6; color: var(--ink-soft);
-  margin: 0 auto 46px; max-width: 46ch; text-wrap: balance;
+  margin: 0 auto 14px; max-width: 48ch; text-wrap: balance;
+}
+/* l'itinéraire annoncé d'emblée : c'est lui qui fait tenir les onze escales
+   ensemble au lieu d'une suite de tableaux sans rapport */
+.route {
+  font-size: 13.4px; line-height: 1.62; color: var(--muted);
+  margin: 0 auto 42px; max-width: 52ch; text-wrap: balance;
 }
 
 .age-choice { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; max-width: 780px; margin: 0 auto; }
@@ -191,20 +235,6 @@ body[data-age="enfant"] .age-name { font-weight: 700; }
 }
 .intro-foot .dot { opacity: .4 }
 
-/* ─────────────── chargement ─────────────── */
-.loader-inner { text-align: center; }
-.loader-ring { position: relative; width: 86px; height: 86px; margin: 0 auto 28px; }
-.loader-ring i {
-  position: absolute; inset: 0; border-radius: 50%;
-  border: 1.5px solid transparent; border-top-color: var(--accent);
-  animation: spin 1.5s linear infinite;
-}
-.loader-ring i:nth-child(2) { inset: 12px; border-top-color: var(--blood); animation-duration: 2.1s; animation-direction: reverse; }
-.loader-ring i:nth-child(3) { inset: 24px; border-top-color: rgba(255,255,255,.5); animation-duration: 2.9s; }
-@keyframes spin { to { transform: rotate(360deg) } }
-.loader-label { font: 500 12px/1 var(--font-mono); letter-spacing: .22em; text-transform: uppercase; color: var(--muted); margin: 0 0 10px; }
-.loader-station { font-family: var(--font-display); font-size: 26px; margin: 0; color: var(--ink); }
-
 /* ═══════════════════════ HUD ═══════════════════════ */
 
 #hud { position: fixed; inset: 0; z-index: 10; pointer-events: none; font-size: calc(1rem * var(--ui-scale)); }
@@ -235,6 +265,9 @@ body.ui-hidden .narration { opacity: 0; transform: translateY(6px); pointer-even
   font-size: 12.6px; font-weight: 500; letter-spacing: .01em;
   transition: color .25s, border-color .25s, background .25s, transform .25s var(--ease-out);
 }
+/* le bouton du sommaire occupe une colonne en 1fr : sans cette contrainte,
+   la pastille s'étirait sur toute la moitié gauche du bandeau */
+.chip-menu { justify-self: start; }
 .chip:hover { color: var(--ink); border-color: var(--line-strong); transform: translateY(-1px); }
 .chip svg { width: 15px; height: 15px; }
 .chip-icon { width: 36px; padding: 0; justify-content: center; }
@@ -331,7 +364,11 @@ body.reading #vignette::after {
   animation: dimIn .4s var(--ease-out) both; pointer-events: none;
 }
 body.reading .card { background: rgba(11,9,15,.94); }
-body.reading .hotspot { opacity: .25 !important; }
+/* fiche ouverte : les autres repères s'effacent, celui qu'on lit reste
+   allumé sur son objet — c'est lui qui fait le lien entre le texte et la 3D */
+body.reading .hotspot { opacity: .16 !important; }
+body.reading .hotspot.open { opacity: 1 !important; }
+body.reading .reticle, body.reading .compass { opacity: 0; }
 @keyframes dimIn { from { opacity: 0 } to { opacity: 1 } }
 
 .card.is-relic { border-color: rgba(255,200,106,.45); box-shadow: 0 40px 90px -30px rgba(0,0,0,.9), 0 0 60px -20px rgba(255,200,106,.5); }
@@ -482,8 +519,24 @@ body[data-age="enfant"] .card-body { font-size: 15.6px; line-height: 1.72; }
 .quest.done .quest-tick { background: var(--accent-station, var(--accent)); border-color: transparent; }
 .quest.done .quest-tick svg { opacity: 1; transform: none; color: #06050a; }
 .quest.done .quest-text { color: var(--muted); text-decoration: line-through; text-decoration-color: rgba(255,255,255,.25); }
+.quest-text { flex: 1 1 auto; }
 .quest-text i { font-style: normal; font-variant-numeric: tabular-nums; color: var(--accent-station, var(--accent)); }
 .quest.done .quest-text i { color: inherit; }
+
+/* objectif en cours : trait d'approche sous la ligne + distance qui reste */
+.quest.active { position: relative; color: var(--ink); }
+.quest.active::after {
+  content: ''; position: absolute; left: 24px; right: 0; bottom: -3px; height: 1px;
+  background: var(--accent-station, var(--accent)); opacity: .5;
+  transform: scaleX(var(--near, 0)); transform-origin: left center;
+  transition: transform .3s linear;
+}
+.quest-range {
+  flex: none; font: 500 10.5px/1.5 var(--font-mono); color: var(--muted);
+  font-variant-numeric: tabular-nums; opacity: 0; transition: opacity .3s, color .3s;
+}
+.quest.active .quest-range { opacity: 1; }
+.quest.inrange .quest-range { color: var(--accent-station, var(--accent)); }
 
 .quest-guide {
   display: flex; align-items: center; justify-content: center; gap: 7px;
@@ -551,41 +604,107 @@ body[data-age="enfant"] .card-body { font-size: 15.6px; line-height: 1.72; }
 .hint.on { opacity: 1; transform: none; }
 .hint b { color: var(--ink-soft); font-weight: 500; }
 
-/* ── points d'intérêt ── */
+/* ── repères ──
+   Le cercle n'est pas décoratif : son rayon à l'écran est celui de l'objet
+   désigné, projeté. Une villosité fait un petit cercle, un ventricule un
+   grand. C'est ce qui répond à « ça montre quoi, au juste ». Le trait part
+   du bord du cercle et va chercher l'étiquette en diagonale, comme sur une
+   planche d'anatomie. */
 .hotspots { position: absolute; inset: 0; }
 .hotspot {
-  position: absolute; transform: translate(-50%, -50%);
-  display: flex; align-items: center; gap: 9px; padding: 0;
+  position: absolute; left: 0; top: 0; padding: 0;
+  --r: 22px; --lead: 34px;
+  color: var(--accent-station, var(--accent));
   will-change: transform, opacity;
 }
-.hotspot-ring {
-  position: relative; width: 22px; height: 22px; flex: none; border-radius: 50%;
-  border: 1.4px solid var(--accent); display: grid; place-items: center;
-  background: rgba(6,10,14,.42); backdrop-filter: blur(3px);
-  transition: transform .35s var(--ease-out), background .3s;
+.hs-ring {
+  position: absolute;
+  left: calc(var(--r) * -1); top: calc(var(--r) * -1);
+  width: calc(var(--r) * 2); height: calc(var(--r) * 2);
+  border-radius: 50%; border: 1.3px solid currentColor; opacity: .78;
+  box-shadow: 0 0 0 1px rgba(0,0,0,.45), inset 0 0 18px rgba(0,0,0,.30);
+  transition: opacity .3s, box-shadow .3s;
 }
-.hotspot-ring::before {
-  content: ''; width: 4.5px; height: 4.5px; border-radius: 50%; background: var(--accent);
-  box-shadow: 0 0 9px var(--accent);
+/* quatre encoches sur le cercle : ça se lit comme une visée, pas comme une bulle */
+.hs-ring::before, .hs-ring::after {
+  content: ''; position: absolute; left: 50%; top: 50%;
+  width: calc(var(--r) * 2 + 11px); height: calc(var(--r) * 2 + 11px);
+  margin: calc(var(--r) * -1 - 5.5px) 0 0 calc(var(--r) * -1 - 5.5px);
+  border-radius: 50%; border: 1.3px solid currentColor;
+  -webkit-mask: conic-gradient(from 42deg, #000 0 6deg, transparent 6deg 84deg,
+                #000 84deg 96deg, transparent 96deg 174deg, #000 174deg 186deg,
+                transparent 186deg 264deg, #000 264deg 276deg, transparent 276deg 360deg);
+          mask: conic-gradient(from 42deg, #000 0 6deg, transparent 6deg 84deg,
+                #000 84deg 96deg, transparent 96deg 174deg, #000 174deg 186deg,
+                transparent 186deg 264deg, #000 264deg 276deg, transparent 276deg 360deg);
+  opacity: .9;
 }
-.hotspot-ring::after {
-  content: ''; position: absolute; inset: -1.4px; border-radius: 50%; border: 1.4px solid var(--accent);
-  animation: hsPulse 2.8s var(--ease-out) infinite;
+.hs-ring::after { animation: hsPing 3.2s var(--ease-out) infinite; }
+@keyframes hsPing { 0% { transform: scale(1); opacity: .55 } 60%, 100% { transform: scale(1.45); opacity: 0 } }
+
+.hs-dot {
+  position: absolute; left: -2px; top: -2px; width: 4px; height: 4px; border-radius: 50%;
+  background: currentColor; box-shadow: 0 0 9px currentColor;
 }
-@keyframes hsPulse { 0% { transform: scale(1); opacity: .8 } 70%, 100% { transform: scale(2.3); opacity: 0 } }
-.hotspot-label {
+.hs-lead {
+  position: absolute; left: 0; top: 0; height: 1px; width: var(--lead);
+  background: linear-gradient(to right, currentColor, currentColor);
+  opacity: .55; transform-origin: left center;
+  transform: translate(calc(var(--r) * .71), calc(var(--r) * -.71)) rotate(-45deg);
+}
+.hs-label {
+  position: absolute; left: 0; top: 0;
+  transform: translate(calc(var(--r) * .71 + var(--lead) * .71), calc(var(--r) * -.71 - var(--lead) * .71 - 50%));
   font-size: 12.2px; font-weight: 500; letter-spacing: .01em; color: var(--ink);
   padding: 5px 11px; border-radius: 99px; white-space: nowrap;
-  background: rgba(8,7,12,.66); border: 1px solid var(--line);
+  background: rgba(8,7,12,.72); border: 1px solid var(--line);
   backdrop-filter: var(--blur); -webkit-backdrop-filter: var(--blur);
-  opacity: 0; transform: translateX(-8px) scale(.94); transform-origin: left center;
-  transition: opacity .32s var(--ease), transform .32s var(--ease-out);
   text-shadow: 0 1px 8px #000;
+  transition: background .28s, border-color .28s, color .28s;
 }
-.hotspot:hover .hotspot-ring, .hotspot.near .hotspot-ring { transform: scale(1.18); background: rgba(98,219,228,.2); }
-.hotspot:hover .hotspot-label, .hotspot.near .hotspot-label { opacity: 1; transform: none; }
-.hotspot.open .hotspot-ring { background: var(--accent); }
-.hotspot.open .hotspot-ring::before { background: #05070a; box-shadow: none; }
+.hotspot:hover .hs-ring, .hotspot.near .hs-ring { opacity: 1; box-shadow: 0 0 22px -4px currentColor, inset 0 0 22px -8px currentColor; }
+.hotspot:hover .hs-label, .hotspot.near .hs-label { background: var(--accent-station, var(--accent)); border-color: transparent; color: #07060a; }
+.hotspot.open .hs-label { background: var(--accent-station, var(--accent)); border-color: transparent; color: #07060a; }
+.hotspot.open .hs-ring { opacity: 1; }
+
+/* ── réticule de visée ── */
+.reticle { position: absolute; left: 50%; top: 50%; z-index: 4; pointer-events: none; }
+.reticle[hidden] { display: none; }
+.ret-dot {
+  position: absolute; left: -2px; top: -2px; width: 4px; height: 4px; border-radius: 50%;
+  background: rgba(255,255,255,.85); box-shadow: 0 0 8px rgba(0,0,0,.9);
+}
+.ret-ring {
+  position: absolute; left: -13px; top: -13px; width: 26px; height: 26px; border-radius: 50%;
+  border: 1px solid rgba(255,255,255,.26);
+  transition: transform .28s var(--ease-out), border-color .28s;
+}
+body.aiming .ret-ring { transform: scale(1.5); border-color: var(--accent-station, var(--accent)); }
+.ret-hint {
+  position: absolute; left: 50%; top: 30px; transform: translateX(-50%);
+  white-space: nowrap; font: 500 11.5px/1 var(--font-mono); letter-spacing: .1em;
+  text-transform: uppercase; color: var(--ink); opacity: 0;
+  padding: 5px 10px; border-radius: 99px; background: rgba(8,7,12,.72); border: 1px solid var(--line);
+  transition: opacity .26s var(--ease);
+}
+body.aiming .ret-hint { opacity: 1; }
+
+/* ── boussole : où est l'objectif quand il est hors champ ── */
+.compass {
+  position: absolute; left: 50%; top: 50%; z-index: 4; pointer-events: none;
+  display: flex; align-items: center; gap: 7px;
+  transform: translate(-50%, -50%);
+}
+.compass[hidden] { display: none; }
+.compass svg {
+  width: 26px; height: 26px; fill: var(--accent-station, var(--accent)); stroke: none;
+  filter: drop-shadow(0 2px 6px rgba(0,0,0,.85));
+}
+.compass span {
+  font: 500 11.5px/1 var(--font-mono); letter-spacing: .08em; color: var(--ink);
+  padding: 4px 9px; border-radius: 99px; background: rgba(8,7,12,.72); border: 1px solid var(--line);
+  white-space: nowrap;
+}
 
 /* ── narration ── */
 .narration {
@@ -699,20 +818,24 @@ body[data-age="enfant"] #narr-text { font-size: 15.4px; }
   .intro-bg { animation: none; }
 }
 
-/* curseur de visée quand la souris est capturée */
-body.locked .hotspots::after {
-  content: ''; position: absolute; left: 50%; top: 50%; width: 22px; height: 22px;
-  margin: -11px 0 0 -11px; border-radius: 50%;
-  border: 1px solid rgba(255,255,255,.32);
-  box-shadow: inset 0 0 0 4px rgba(0,0,0,.001);
+/* la souris est capturée : on dit comment la récupérer, sinon on se croit coincé */
+.lock-note {
+  position: absolute; left: 50%; bottom: calc(14px + var(--sab)); transform: translateX(-50%);
+  margin: 0; font-size: 11.5px; color: var(--muted); white-space: nowrap;
+  padding: 5px 12px; border-radius: 99px; background: rgba(8,7,12,.6); border: 1px solid var(--line);
+  opacity: 0; transition: opacity .3s var(--ease); pointer-events: none;
 }
-body.locked .hotspots::before {
-  content: ''; position: absolute; left: 50%; top: 50%; width: 3px; height: 3px;
-  margin: -1.5px 0 0 -1.5px; border-radius: 50%; background: var(--accent);
+body.locked .lock-note { opacity: 1; }
+body.locked.reading .lock-note { opacity: 0; }
+.lock-note kbd {
+  font: 500 10.5px/1 var(--font-mono); color: var(--ink); background: rgba(255,255,255,.09);
+  border: 1px solid var(--line); border-radius: 5px; padding: 3px 5px; margin-right: 4px;
 }
 
-.hotspot.crowded .hotspot-label { opacity: 0 !important; transform: translateX(-8px) scale(.94) !important; }
-.hotspot.crowded .hotspot-ring { transform: scale(.78); opacity: .7; }
+/* deux repères l'un sur l'autre : le plus proche garde son étiquette */
+.hotspot.crowded .hs-label, .hotspot.crowded .hs-lead { opacity: 0; }
+.hotspot.crowded .hs-ring { opacity: .34; }
+.hotspot.crowded .hs-ring::after { animation: none; opacity: 0; }
 
 /* une fiche ouverte prend la place du joystick sur mobile */
 body.panel-open .stick { display: none; }

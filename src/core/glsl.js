@@ -144,6 +144,39 @@ vec3 hbRig(vec3 alb, vec3 N, vec3 V, float ao, float wrap, float shiny, float we
 }
 `;
 
+/**
+ * PAVAGE CELLULAIRE — Voronoï jitteré sur les coordonnées de texture.
+ * Renvoie x = proximité du joint (1 sur le joint, 0 au centre de la cellule)
+ * et y = un aléa propre à la cellule, pour la teinter.
+ *
+ * C'est ce qui fait qu'un endothélium ressemble à un carrelage de cellules
+ * allongées et une couche cornée à des dalles, au lieu d'une bouillie de
+ * bruit. Le joint est adouci sous la taille du pixel : sans ça il se met à
+ * grésiller dès qu'on s'éloigne.
+ */
+export const PAVE = /* glsl */`
+vec2 hbCell2(vec2 p){
+  return fract(sin(vec2(dot(p, vec2(127.1, 311.7)), dot(p, vec2(269.5, 183.3)))) * 43758.5453);
+}
+vec2 hbPave(vec2 q, float soft, float round){
+  vec2 g = floor(q), f = q - g;
+  float d1 = 8.0, d2 = 8.0;
+  vec2 best = g;
+  for (int j = -1; j <= 1; j++){
+    for (int i = -1; i <= 1; i++){
+      vec2 o = vec2(float(i), float(j));
+      vec2 c = o + mix(vec2(0.5), hbCell2(g + o), round);
+      float d = length(c - f);
+      if (d < d1){ d2 = d1; d1 = d; best = g + o; }
+      else if (d < d2){ d2 = d; }
+    }
+  }
+  float edge = d2 - d1;
+  float w = max(soft, 0.0025);
+  return vec2(1.0 - smoothstep(0.0, w, edge), hbCell2(best).x);
+}
+`;
+
 /* Petites fonctions d'appoint. */
 export const UTIL = /* glsl */`
 float hbSat(float x){ return clamp(x, 0.0, 1.0); }

@@ -80,19 +80,37 @@ const ui = new UI({
   onQuiz: () => game.notify('quiz'),
   onSpotRead: (key) => game.notify('read', key),
   onGuide: () => guideToMission(),
-  onTravel: (point, done) => travelTo(point, done),
+  onTravel: (key, done) => travelToSpot(key, done),
   onRead: (on) => { rig.frozen = on; if (on) rig.releaseLock(); },
   onStick: (x, y, active) => { rig.stick.x = x; rig.stick.y = y; rig.stick.active = active; },
 });
 scene.add(game.group);
 
-/** Emmène la sonde devant un point, puis exécute la suite. */
-function travelTo(point, done, stopAt) {
-  const d = camera.position.distanceTo(point);
+/**
+ * Emmène la sonde à un poste d'observation, puis exécute la suite.
+ * Quand l'escale a prévu un point de vue pour ce repère, on s'y pose
+ * exactement : c'est ce qui garantit que l'objet désigné remplit l'écran
+ * à l'arrivée, au lieu d'être vu de trop loin ou de biais.
+ */
+function travel(target, view, done, stopAt) {
+  const dest = view || null;
+  const d = camera.position.distanceTo(dest || target);
   const dist = Math.max(stopAt ?? (state.world?.spotFar ?? 600) * 0.22, 12);
-  if (d < dist * 1.15) { done?.(); return; }
-  rig.travelTo(point, { dist, ms: clamp(d / (state.world?.freeSpeed ?? 60) * 260, 700, 2600), onArrive: done });
+  if (!dest && d < dist * 1.15) { done?.(); return; }
+  if (dest && d < 5) { done?.(); return; }
+  rig.travelTo(target, {
+    view: dest, dist,
+    ms: clamp(d / (state.world?.freeSpeed ?? 60) * 260, 800, 2600),
+    onArrive: done,
+  });
   sound.whoosh(0.6);
+}
+
+/** Voyage vers un repère nommé, avec son point de vue s'il en a un. */
+function travelToSpot(key, done) {
+  const info = state.world?.spotInfo?.[key];
+  if (!info) { done?.(); return; }
+  travel(info.p, info.view, done, Math.max(info.r * 2.6, 14));
 }
 
 function guideToMission() {
@@ -100,15 +118,15 @@ function guideToMission() {
   if (!g) { ui.narrate(state.age === 'enfant'
     ? 'Tout est fait ici ! Va voir l’escale suivante.'
     : 'Les trois missions de cette escale sont accomplies.', 4000); return; }
-  // on s'arrête franchement à l'intérieur du rayon de la mission, sinon on
-  // arrive « presque » et l'objectif ne se valide jamais
   const m = g.mission;
-  const stop = m.type === 'reach' ? (m.r ?? 150) * 0.5
-    : m.type === 'collect' ? (MISSIONS[STATIONS[state.index].id]?.pickRadius ?? 46) * 0.6
-      : undefined;
-  travelTo(g.point, () => {
-    if (m.type === 'read') ui.openCard(m.spot);
-  }, stop);
+  if (m.type === 'read' || m.type === 'reach') {
+    // on se pose franchement à l'intérieur du rayon de validation, sinon on
+    // arrive « presque » et l'objectif ne se valide jamais
+    travelToSpot(m.spot, () => { if (m.type === 'read') ui.openCard(m.spot); });
+    return;
+  }
+  const stop = m.type === 'collect' ? (MISSIONS[STATIONS[state.index].id]?.pickRadius ?? 46) * 0.6 : undefined;
+  travel(g.point, g.view, null, stop);
 }
 
 /* ─────────────── démarrage ─────────────── */
@@ -141,15 +159,52 @@ function setAge(age, silent) {
 }
 
 /* ─────────────── escales ─────────────── */
-let loading = false;
+
+/**
+ * Chaque escale déclare ses repères soit par un simple point, soit par
+ * `{ p, r, view }` : `r` est le rayon réel de l'objet désigné (le cercle du
+ * repère l'épouse à l'écran) et `view` le poste d'observation d'où on le voit
+ * bien. On range les deux formes dans `spotInfo`, et `spots` reste la table de
+ * positions que le jeu utilise.
+ */
+function normalizeSpots(world) {
+  const info = {}, pos = {};
+  for (const k in (world.spots || {})) {
+    const s = world.spots[k];
+    if (!s) continue;
+    const p = s.isVector3 ? s : s.p;
+    if (!p) continue;
+    info[k] = {
+      p,
+      r: s.isVector3 ? 26 : (s.r ?? 26),
+      view: s.isVector3 ? null : (s.view || null),
+      far: s.isVector3 ? null : (s.far ?? null),
+    };
+    pos[k] = p;
+  }
+  world.spotInfo = info;
+  world.spots = pos;
+}
+
+let loading = false, queued = null;
 async function goto(i, first = false) {
   i = clamp(i, 0, STATIONS.length - 1);
-  if (loading || (i === state.index && !first)) return;
+  // Une escale demandée pendant une transition n'est plus perdue : on retient
+  // la dernière et on y va en sortant. Sans ça, appuyer deux fois sur « . »
+  // n'avançait que d'un cran, ce qui donnait l'impression d'une touche morte.
+  if (loading) { queued = i; return; }
+  if (i === state.index && !first) return;
   loading = true;
+  const dir = (state.index < 0 || i > state.index) ? 1 : -1;
   ui.closeCard();
+  ui.toggleMenu(false);
+  if (!first) sound.whoosh(1.0);
 
-  if (!first) { ui.transit(true); sound.whoosh(1.0); await wait(430); }
-  else ui.loader(true, t(STATIONS[0].name, state.age));
+  // Le carton de chapitre est peint AVANT la construction : celle-ci bloque
+  // le fil principal une bonne seconde, et sans masque opaque l'image se fige
+  // en plein vol — ce qui se lit comme un plantage, pas comme un voyage.
+  const t0 = performance.now();
+  await ui.transit(i, dir);
 
   if (state.world) {
     scene.remove(state.world.group);
@@ -158,8 +213,8 @@ async function goto(i, first = false) {
   }
 
   const st = STATIONS[i];
-  await wait(16);
   const world = WORLDS[st.id](QUALITY);
+  normalizeSpots(world);
   state.world = world;
   state.index = i;
   scene.add(world.group);
@@ -175,6 +230,7 @@ async function goto(i, first = false) {
   const def = MISSIONS[st.id];
   game.setStation(i, world, def);
   game.spotPos = world.spots || {};
+  game.spotInfo = world.spotInfo || {};
 
   ui.setStation(i);
   ui.buildHotspots(world);
@@ -188,11 +244,18 @@ async function goto(i, first = false) {
   renderer.compile(scene, camera);
   rig.update(0.016, 0);
   post.composer.render();
+  ui.updateHotspots(camera, innerWidth, innerHeight);
 
-  if (first) { ui.loader(false); }
-  else { await wait(120); }
-  ui.transit(false);
+  // durée plancher : le carton doit avoir le temps d'être lu, et une escale
+  // qui se construit vite ne doit pas donner un clignotement
+  const spent = performance.now() - t0;
+  if (spent < 1900) await wait(1900 - spent);
   loading = false;
+  if (queued !== null && queued !== i) { const n = queued; queued = null; return goto(n); }
+  queued = null;
+  ui.transitDone();
+  ui.setReticle(true);
+  ui.arrive();
 }
 
 /**
@@ -271,6 +334,12 @@ function loop() {
   post.grade.uniforms.uPulse.value = state.pulse;
   ui.updateHotspots(camera, innerWidth, innerHeight);
 
+  // boussole vers l'objectif en cours + distance restante dans le carnet
+  const g = game.guideTarget();
+  ui.updateCompass(camera, innerWidth, innerHeight, g?.point || null,
+    g ? t(g.mission.short || g.mission.label, state.age) : '');
+  ui.setQuestRange(g?.mission?.id, g ? camera.position.distanceTo(g.point) : 0, g?.radius || 0);
+
   post.composer.render();
 
   // résolution adaptative
@@ -303,9 +372,17 @@ function resize() {
 addEventListener('resize', resize);
 resize();
 
+/**
+ * Un clic dans le décor. Quand la souris est capturée, ses coordonnées ne
+ * bougent plus : c'est le réticule qui désigne. L'ancienne version passait
+ * quand même clientX/clientY, périmés, donc plus rien ne s'ouvrait une fois
+ * le curseur pris — le clic tombait toujours à côté.
+ */
 rig.onTap = (e) => {
-  if (ui.pickAt(e.clientX, e.clientY, 80)) return;
-  if (!rig.locked && !rig.frozen && !matchMedia('(pointer: coarse)').matches) rig.requestLock();
+  if (rig.frozen) return;
+  if (rig.locked) { ui.pickAt(null); return; }
+  if (ui.pickAt(e.clientX, e.clientY, 90)) return;
+  if (!matchMedia('(pointer: coarse)').matches) rig.requestLock();
 };
 
 addEventListener('keydown', (e) => {
@@ -316,8 +393,8 @@ addEventListener('keydown', (e) => {
   else if (k === 'KeyG') guideToMission();
   else if (k === 'KeyH') { state.uiHidden = !state.uiHidden; document.body.classList.toggle('ui-hidden', state.uiHidden); }
   else if (k === 'KeyM') { const on = !sound.on; sound.setEnabled(on); ui.setSound(on); if (on) sound.setStation(STATIONS[state.index]?.id); }
-  else if (k === 'KeyE' || k === 'Enter') { if (!ui.pickAt(innerWidth / 2, innerHeight / 2, 220)) ui.openCard('station'); }
-  else if (k === 'Escape') { ui.closeCard(); ui.toggleMenu(false); ui.toggleHelp(false); }
+  else if (k === 'KeyE' || k === 'Enter') { if (!ui.pickAt(null)) ui.openCard('station'); }
+  else if (k === 'Escape') { rig.releaseLock(); ui.closeCard(); ui.toggleMenu(false); ui.toggleHelp(false); }
 });
 
 document.querySelector('.station-head').addEventListener('click', () => ui.openCard('station'));

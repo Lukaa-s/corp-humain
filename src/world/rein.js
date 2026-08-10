@@ -150,11 +150,23 @@ export default function rein(q = 1) {
   ]);
   path.curveType = 'centripetal';
 
+  /* le coude de l'anse : le point le plus bas du tubule, celui qui fait
+     comprendre la forme en épingle. On le cherche au lieu de le deviner. */
+  let bendU = 0.6, bendY = Infinity;
+  for (let i = 0; i <= 200; i++) {
+    const u = i / 200, p = tubCurve.getPointAt(u);
+    if (p.y < bendY) { bendY = p.y; bendU = u; }
+  }
+  const bend = tubCurve.getPointAt(bendU);
+  const bendView = tubCurve.getPointAt(Math.max(0, bendU - 0.10)).lerp(bend, 0.25);
+  const collP = tubCurve.getPointAt(0.94);
+
   const spots = {
-    glomerule: new THREE.Vector3(0, 0, 0),
-    bowman: new THREE.Vector3(0, CAPS * 0.72, -CAPS * 0.5),
-    henle: tubCurve.getPointAt(0.62),
-    collecteur: tubCurve.getPointAt(0.94),
+    glomerule: { p: new THREE.Vector3(0, 0, 0), r: 175, view: new THREE.Vector3(-70, 210, 470) },
+    bowman: { p: new THREE.Vector3(0, CAPS * 0.72, -CAPS * 0.5), r: 120,
+              view: new THREE.Vector3(30, CAPS * 0.3, CAPS * 0.62) },
+    henle: { p: bend.clone(), r: 70, view: bendView },
+    collecteur: { p: collP.clone(), r: 60, view: tubCurve.getPointAt(0.88) },
   };
 
   return {

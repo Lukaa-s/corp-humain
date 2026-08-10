@@ -13,7 +13,7 @@ export default function cellule(q = 1) {
   const NUC = new THREE.Vector3(0, 0, 900), NR = 300;
 
   group.add(new THREE.Mesh(new THREE.SphereGeometry(3400, 30, 20),
-    voidDome({ top: 0x06222a, bottom: 0x02080c, cloud: 0x0d4a52, clouds: 0.5, scale: 0.5 })));
+    voidDome({ top: 0x0a2e38, bottom: 0x04101a, cloud: 0x156470, clouds: 0.5, scale: 0.5 })));
 
   /* ── membrane plasmique ── */
   const cellMem = new THREE.Mesh(new THREE.SphereGeometry(1500, 56, 38), membrane({
@@ -128,7 +128,7 @@ export default function cellule(q = 1) {
   group.add(pores);
 
   const nucGlow = new THREE.Mesh(new THREE.SphereGeometry(NR * 0.97, 30, 20),
-    glow({ color: 0x6a8cff, intensity: 0.2, core: 0.02, power: 2.4, side: THREE.BackSide }));
+    glow({ color: 0x7aa0ff, intensity: 0.34, core: 0.06, power: 2.2, side: THREE.BackSide }));
   nucGlow.position.copy(NUC);
   group.add(nucGlow);
 
@@ -180,10 +180,12 @@ export default function cellule(q = 1) {
   chromatin.position.copy(NUC);
   group.add(chromatin);
 
+  // Le noyau est le seul point de repère de cette escale : on démarre face à
+  // lui. Depuis l'arrière, on ne voyait qu'un brouillard vert avec des pods.
   const path = new THREE.CatmullRomCurve3([
-    new THREE.Vector3(-1150, 420, -900),
-    new THREE.Vector3(-720, 200, -420),
-    new THREE.Vector3(-380, -80, 60),
+    new THREE.Vector3(-560, 230, -560),
+    new THREE.Vector3(-430, 140, -260),
+    new THREE.Vector3(-300, -20, 100),
     new THREE.Vector3(80, 120, 300),
     new THREE.Vector3(420, -60, 420),
     new THREE.Vector3(360, 180, 620),
@@ -199,11 +201,13 @@ export default function cellule(q = 1) {
   const focus = { point: NUC.clone(), from: 0.58, to: 1.4, fade: 0.16 };
   path.curveType = 'centripetal';
 
+  const mitoP = new THREE.Vector3(mPos[0], mPos[1], mPos[2]);
   const spots = {
-    noyau: NUC.clone().add(new THREE.Vector3(0, NR * 0.86, -NR * 0.5)),
-    adn: NUC.clone().add(new THREE.Vector3(0, 120, 0)),
-    mito: new THREE.Vector3(mPos[0], mPos[1], mPos[2]),
-    ribosome: new THREE.Vector3(-320, 90, 260),
+    noyau: { p: NUC.clone(), r: NR, view: NUC.clone().add(new THREE.Vector3(-380, 260, -720)) },
+    adn: { p: NUC.clone(), r: 130, view: NUC.clone().add(new THREE.Vector3(-150, 90, -240)) },
+    mito: { p: mitoP.clone(), r: 60, view: mitoP.clone().add(new THREE.Vector3(-90, 70, -150)) },
+    ribosome: { p: new THREE.Vector3(-320, 90, 260), r: 42,
+                view: new THREE.Vector3(-190, 140, 90) },
   };
 
   return {
@@ -212,11 +216,11 @@ export default function cellule(q = 1) {
     bounds: { type: 'sphere', center: new THREE.Vector3(0, 0, 380), radius: 1450 },
     // cristallin, froid, luminescent
     light: {
-      key:  { dir: [0.3, 1, 0.4], color: 0xb0e8ff, int: 0.42 },
+      key:  { dir: [0.3, 1, 0.4], color: 0xb0e8ff, int: 0.56 },
       fill: { dir: [-0.5, -0.5, -0.4], color: 0x6020c0, int: 0.26 },
-      sky:  { top: 0x80c0ff, bot: 0x0a0820, int: 0.22 },
+      sky:  { top: 0x80c0ff, bot: 0x141a34, int: 0.3 },
     },
-    grade: { bloom: 0.9, tint: [0.96, 1.02, 1.06], vig: 0.52, exposure: 1.18 },
+    grade: { bloom: 0.66, tint: [0.96, 1.02, 1.06], vig: 0.54, exposure: 1.06 },
     update(t, dt, pulse, breath, cam) {
       dna.rotation.y = t * 0.11;
       pores.rotation.y = t * 0.01;

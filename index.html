@@ -21,7 +21,20 @@
 
 <canvas id="scene"></canvas>
 <div id="vignette" aria-hidden="true"></div>
-<div id="transit" aria-hidden="true"><div class="transit-core"></div></div>
+
+<!-- ══════════════ TRANSIT — carton de chapitre entre deux escales ══════════════
+     Tout ce qui bouge ici n'anime que transform et opacity : le compositeur
+     continue de jouer l'animation pendant que le fil principal construit la
+     scène suivante. Sans ça, la transition se fige et ressemble à un plantage. -->
+<section id="transit" class="screen" hidden aria-live="polite">
+  <div class="transit-inner">
+    <div class="transit-orbit" aria-hidden="true"><i></i><i></i><i></i></div>
+    <p class="transit-step" id="transit-step"></p>
+    <h2 class="transit-name" id="transit-name"></h2>
+    <p class="transit-link" id="transit-link"></p>
+    <div class="transit-bar" aria-hidden="true"><i id="transit-fill"></i></div>
+  </div>
+</section>
 
 <!-- ══════════════ ÉCRAN D'ACCUEIL ══════════════ -->
 <section id="intro" class="screen">
@@ -29,7 +42,10 @@
   <div class="intro-inner">
     <p class="eyebrow">Sonde d'exploration biologique · <span id="intro-date"></span></p>
     <h1 class="title">INTÉRIEUR</h1>
-    <p class="subtitle">Un voyage à l'intérieur du corps humain.<br />Onze escales, de la peau jusqu'à l'ADN.</p>
+    <p class="subtitle">Vous pilotez une sonde grande comme une cellule.<br />
+      Elle entre par un pore de la peau, se laisse porter par le sang jusqu'au cœur, et ne ressort pas.</p>
+    <p class="route">Onze escales, dans l'ordre du trajet : la peau, le sang, le cœur, les poumons,
+      l'estomac, l'intestin, le foie, le rein, les os, le cerveau, et pour finir une seule cellule.</p>
 
     <div class="age-choice" role="group" aria-label="Choisir une version">
       <button class="age-card" data-age="enfant">
@@ -57,15 +73,6 @@
     </p>
   </div>
 </section>
-
-<!-- ══════════════ CHARGEMENT ══════════════ -->
-<div id="loader" class="screen" hidden>
-  <div class="loader-inner">
-    <div class="loader-ring" aria-hidden="true"><i></i><i></i><i></i></div>
-    <p class="loader-label">Immersion en cours…</p>
-    <p class="loader-station" id="loader-station"></p>
-  </div>
-</div>
 
 <!-- ══════════════ HUD ══════════════ -->
 <main id="hud" hidden>
@@ -154,16 +161,21 @@
       <h3>Piloter la sonde</h3>
       <dl class="help-keys">
         <div><dt><kbd>Z</kbd><kbd>Q</kbd><kbd>S</kbd><kbd>D</kbd> <span class="or">ou</span> <kbd>↑</kbd><kbd>←</kbd><kbd>↓</kbd><kbd>→</kbd></dt><dd>Avancer, reculer, se déplacer sur les côtés</dd></div>
-        <div><dt><kbd>Souris</kbd></dt><dd>Regarder autour de soi. Un clic dans le décor capture le curseur, <kbd>Échap</kbd> le relâche</dd></div>
+        <div><dt><kbd>Souris</kbd></dt><dd>Regarder autour de soi. Un clic dans le décor capture le curseur, <kbd>Échap</kbd> le relâche à tout moment</dd></div>
         <div><dt><kbd>Espace</kbd> <span class="or">/</span> <kbd>Ctrl</kbd></dt><dd>Monter / descendre</dd></div>
+        <div><dt><kbd>E</kbd> <span class="or">ou</span> <kbd>Entrée</kbd></dt><dd>Ouvrir la fiche du repère visé par le réticule. Un clic fait la même chose, curseur ou pas</dd></div>
         <div><dt><kbd>G</kbd></dt><dd>Se faire emmener jusqu'à la mission en cours</dd></div>
-        <div><dt><kbd>E</kbd> <span class="or">ou</span> <kbd>Entrée</kbd></dt><dd>Ouvrir la fiche du repère visé</dd></div>
         <div><dt><kbd>,</kbd> <span class="or">et</span> <kbd>.</kbd></dt><dd>Escale précédente / suivante</dd></div>
         <div><dt><kbd>H</kbd></dt><dd>Masquer l'interface (mode photo)</dd></div>
         <div><dt><kbd>M</kbd></dt><dd>Couper le son</dd></div>
       </dl>
+      <h3 class="help-sub">Lire la scène</h3>
+      <p class="help-touch">Chaque repère est un <b>cercle</b> dont la taille à l'écran est celle de l'objet
+        qu'il désigne, relié à son étiquette par un trait. Le viser puis appuyer sur <kbd>E</kbd> emmène la sonde
+        au poste d'observation prévu pour cet objet, celui d'où il se voit bien, et ouvre sa fiche.</p>
+
       <h3 class="help-sub">Le jeu</h3>
-      <p class="help-touch">Chaque escale a <b>trois missions</b>, des <b>échantillons</b> à récolter en volant dedans, et une <b>relique</b> cachée quelque part au large — sans repère, sans indice. Il faut sortir du chemin évident.</p>
+      <p class="help-touch">Chaque escale a <b>trois missions</b>, des <b>échantillons</b> à récolter en volant dedans, et une <b>relique</b> cachée quelque part au large, sans repère ni indice. Il faut sortir du chemin évident.</p>
       <p class="help-touch">Sur écran tactile : <b>joystick</b> en bas à gauche pour avancer, <b>glisser</b> sur l'écran pour regarder.</p>
     </div>
   </div>
@@ -197,14 +209,27 @@
   <!-- Annonces : mission accomplie, échantillon, relique -->
   <div class="toasts" id="toasts" aria-live="polite"></div>
 
-  <!-- Points d'intérêt projetés -->
+  <!-- Repères projetés : un cercle à la taille réelle de l'objet visé -->
   <div class="hotspots" id="hotspots"></div>
+
+  <!-- Réticule de visée + boussole vers l'objectif en cours -->
+  <div class="reticle" id="reticle" hidden>
+    <i class="ret-dot"></i><i class="ret-ring"></i>
+    <span class="ret-hint" id="ret-hint"></span>
+  </div>
+  <div class="compass" id="compass" hidden>
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l7 16-7-4-7 4z"/></svg>
+    <span id="compass-label"></span>
+  </div>
 
   <!-- Narration -->
   <div class="narration" id="narration" hidden>
     <div class="narr-avatar" id="narr-avatar" aria-hidden="true"></div>
     <p id="narr-text"></p>
   </div>
+
+  <!-- Rappel : comment récupérer le curseur quand la souris est capturée -->
+  <p class="lock-note" aria-hidden="true"><kbd>Échap</kbd> rend le curseur</p>
 
   <!-- Joystick tactile -->
   <div class="stick" id="stick" hidden><i id="stick-knob"></i></div>

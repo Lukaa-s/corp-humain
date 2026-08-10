@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { tissue, pulseStrand, moteField, glow, voidDome, driftCells, U } from '../core/mat.js';
-import { segmentsToMesh, mergeGeometries, biconcaveGeometry, rng, lerp, blob } from '../core/build.js';
+import { segmentsToMesh, mergeGeometries, biconcaveGeometry, rng, blob } from '../core/build.js';
 
 /**
  * ESCALE 9 — l'os spongieux et le muscle strié.
@@ -34,13 +34,32 @@ export default function charpente(q = 1) {
       segs.push({ a: nodes[i], b: nodes[j], r0: r, r1: r * (0.7 + rnd() * 0.5) });
     }
   }
-  const lattice = segmentsToMesh(segs, tissue({
+  const boneMat = tissue({
     side: THREE.DoubleSide, deep: 0x3a3026, mid: 0xd8cbb2, hot: 0xfff4e0,
-    noiseScale: 0.03, displace: 2.4, bumpScale: 0.45, bumpAmp: 0.4, normalMix: 0.5,
+    noiseScale: 0.03, displace: 2.4, bumpScale: 0.45, bumpAmp: 0.4, normalMix: 0.25,
     rim: 0.55, wet: 0.22, shiny: 16, falloff: 0.0000025, ambient: 0.34, light: 1.3,
     vein: true, veinAmt: 0.35, veinScale: 0.06,
-  }), 8);
+  });
+  const lattice = segmentsToMesh(segs, boneMat, 8);
   group.add(lattice);
+
+  /* Un renflement à chaque nœud. Sans lui, les poutres se terminaient sur un
+     disque net et la dentelle ressemblait à un assemblage de tuyaux coupés à
+     la scie plutôt qu'à une structure venue d'un seul tenant. */
+  const hubR = new Map();
+  for (const s of segs) {
+    hubR.set(s.a, Math.max(hubR.get(s.a) || 0, s.r0));
+    hubR.set(s.b, Math.max(hubR.get(s.b) || 0, s.r1));
+  }
+  const hubGeos = [];
+  for (const [p, r] of hubR) {
+    const g = new THREE.IcosahedronGeometry(r * 1.24, 1);
+    g.translate(p.x, p.y, p.z);
+    hubGeos.push(g);
+  }
+  const hubs = new THREE.Mesh(mergeGeometries(hubGeos), boneMat);
+  hubGeos.forEach(g => g.dispose());
+  group.add(hubs);
 
   /* ── moelle rouge ── */
   const marrow = new THREE.Mesh(new THREE.SphereGeometry(430, 30, 22),
@@ -147,11 +166,19 @@ export default function charpente(q = 1) {
   ]);
   path.curveType = 'centripetal';
 
+  /* une travée bien placée : celle qui a le plus de voisines, donc un vrai
+     nœud de la dentelle, et pas une poutre isolée au fond du noir */
+  let hub = nodes[0] || new THREE.Vector3(-400, 0, 0), hubN = -1;
+  for (const n of nodes) {
+    if (Math.abs(n.y) > 260) continue;
+    const c = segs.reduce((k, s) => k + (s.a === n || s.b === n ? 1 : 0), 0);
+    if (c > hubN) { hubN = c; hub = n; }
+  }
   const spots = {
-    travee: nodes[8] ? nodes[8].clone() : new THREE.Vector3(-400, 0, 0),
-    moelle: new THREE.Vector3(-380, 120, 60),
-    fibre: new THREE.Vector3(760, 120, 120),
-    jonction: new THREE.Vector3(760, 20, 40),
+    travee: { p: hub.clone(), r: 90, view: hub.clone().add(new THREE.Vector3(190, 130, 220)) },
+    moelle: { p: new THREE.Vector3(-380, 40, 0), r: 380, view: new THREE.Vector3(160, 250, 620) },
+    fibre: { p: new THREE.Vector3(760, 60, 60), r: 190, view: new THREE.Vector3(500, 210, 470) },
+    jonction: { p: new THREE.Vector3(760, 20, 40), r: 46, view: new THREE.Vector3(660, 130, 220) },
   };
 
   let phase = 0;

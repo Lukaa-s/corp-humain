@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { tissue, membrane, glow, voidDome, moteField, U } from '../core/mat.js';
+import { tissue, membrane, glow, voidDome, moteField } from '../core/mat.js';
 import { rng, segmentsToMesh, mergeGeometries } from '../core/build.js';
 
 /**
@@ -23,17 +23,21 @@ export default function peau() {
   sun.position.set(-1500, 1150, 900);
   group.add(sun);
 
-  /* ── le sol : couche cornée ── */
-  const gGeo = new THREE.PlaneGeometry(3000, 3000, 300, 300);
+  /* ── le sol : couche cornée ──
+     Chaque dalle est une cellule morte, aplatie, qui chevauche ses voisines.
+     Le pavage la dessine pour de bon : le bruit fissuré d'avant donnait un
+     sol de terre craquelée, pas un empilement de tuiles. */
+  const gGeo = new THREE.PlaneGeometry(3000, 3000, 320, 320);
   gGeo.rotateX(-Math.PI / 2);
   const ground = new THREE.Mesh(gGeo, tissue({
     side: THREE.FrontSide,
-    deep: 0x5a2a1a, mid: 0xd08f6e, hot: 0xffe4ca,
-    noiseScale: 0.0048, displace: 30, pulseAmp: 0.0,
-    bumpScale: 0.09, bumpAmp: 0.42, normalMix: 0.7,
-    rim: 0.2, wet: 0.14, shiny: 16, falloff: 0.0000045,
+    deep: 0x6a3320, mid: 0xd4966e, hot: 0xffe4ca,
+    noiseScale: 0.0042, displace: 26, pulseAmp: 0.0,
+    bumpScale: 0.05, bumpAmp: 0.3, normalMix: 0.42,
+    rim: 0.2, wet: 0.16, shiny: 18, falloff: 0.0000045,
     ambient: 0.62, light: 1.0,
-    crack: 0.72, crackScale: 0.03,
+    pave: true, paveWorld: true, paveScale: [0.028, 0.028],
+    paveDark: 0.62, paveTint: 0.2, paveBump: 0.55, paveRound: 0.95, paveGloss: 0.25,
   }));
   ground.position.y = -6;
   group.add(ground);
@@ -57,34 +61,68 @@ export default function peau() {
   path.curveType = 'centripetal';
   const guard = sampleGuard.map(u => path.getPointAt(u));
 
+  /**
+   * Un poil : une tige qui s'affine, se courbe dans une direction constante et
+   * se termine en pointe. L'ancienne version empilait six cylindres de même
+   * diamètre coupés net, ce qui donnait des piquets de clôture.
+   */
+  const HAIR_SEG = 11;
+  function growHair(x, z, height, thick, seed) {
+    const r0 = rng(seed);
+    const bend = new THREE.Vector3(r0() - 0.5, 0, r0() - 0.5).normalize().multiplyScalar(0.055 + r0() * 0.05);
+    let cur = new THREE.Vector3(x, -22, z);
+    const dir = new THREE.Vector3((r0() - 0.5) * 0.28, 1, (r0() - 0.5) * 0.28).normalize();
+    const segs = [];
+    for (let s = 0; s < HAIR_SEG; s++) {
+      const u = s / HAIR_SEG, u1 = (s + 1) / HAIR_SEG;
+      // profil : bulbe au pied, fût régulier, pointe effilée
+      const rad = (t) => thick * (1.28 - 0.28 * Math.min(1, t * 6)) * Math.pow(1 - t * 0.97, 0.42);
+      const len = height / HAIR_SEG;
+      const nxt = cur.clone().addScaledVector(dir, len);
+      segs.push({ a: cur.clone(), b: nxt, r0: rad(u), r1: rad(u1) });
+      cur = nxt;
+      dir.add(bend).addScaledVector(new THREE.Vector3(r0() - 0.5, 0, r0() - 0.5), 0.03).normalize();
+    }
+    return segs;
+  }
+
   let placed = 0, tries = 0;
-  while (placed < 34 && tries < 900) {
+  while (placed < 42 && tries < 1200) {
     tries++;
     const x = (rnd() - 0.5) * 2400, z = (rnd() - 0.5) * 2400;
     const p = new THREE.Vector3(x, 0, z);
     if (p.distanceTo(PORE) < 260) continue;
-    if (guard.some(gp => Math.hypot(gp.x - x, gp.z - z) < 95)) continue;
+    if (guard.some(gp => Math.hypot(gp.x - x, gp.z - z) < 88)) continue;
     placed++;
-    const h = 130 + rnd() * 210;
-    const tilt = new THREE.Vector3((rnd() - 0.5) * 0.5, 1, (rnd() - 0.5) * 0.5).normalize();
-    let cur = p.clone().setY(-14);
-    let dir = tilt.clone();
-    let r = 17 + rnd() * 11;
-    for (let s = 0; s < 6; s++) {
-      const len = h / 6;
-      const nxt = cur.clone().addScaledVector(dir, len);
-      hairSegs.push({ a: cur.clone(), b: nxt, r0: r, r1: r * 0.84 });
-      cur = nxt; r *= 0.84;
-      dir.x += (rnd() - 0.5) * 0.16; dir.z += (rnd() - 0.5) * 0.16;
-      dir.normalize();
-    }
+    hairSegs.push(...growHair(x, z, 130 + rnd() * 190, 12 + rnd() * 7, 700 + placed));
   }
+
+  /* Le poil-repère. Une mission demande d'en atteindre le sommet : il faut
+     donc qu'un poil, et un seul, s'impose comme celui-là. Il est deux fois
+     plus haut que les autres, planté au bord du chemin, et il porte à son
+     sommet une gouttelette qui accroche le soleil. */
+  const HERO = new THREE.Vector3(-118, 0, 96);
+  const heroSegs = growHair(HERO.x, HERO.z, 620, 26, 4242);
+  hairSegs.push(...heroSegs);
+  const HERO_TIP = heroSegs[heroSegs.length - 1].b.clone();
+
   const hairs = segmentsToMesh(hairSegs, tissue({
     side: THREE.DoubleSide, deep: 0x4a2412, mid: 0xc98a58, hot: 0xffe0b8,
-    noiseScale: 0.05, displace: 0.9, bumpScale: 0.3, bumpAmp: 0.25, normalMix: 0.4,
-    rim: 0.9, wet: 0.45, shiny: 30, falloff: 0.0000075, ambient: 0.5,
-    }), 8);
+    noiseScale: 0.05, displace: 0.7, bumpScale: 0.34, bumpAmp: 0.22, normalMix: 0.24,
+    rim: 0.9, wet: 0.5, shiny: 34, falloff: 0.0000075, ambient: 0.5,
+  }), 10);
   group.add(hairs);
+
+  /* la gouttelette au sommet du poil-repère : un point de mire visible de loin */
+  const crown = new THREE.Mesh(new THREE.SphereGeometry(19, 26, 18), membrane({
+    inner: 0x4a3a20, edge: 0xfff0d0, power: 1.9, base: 0.10, rimAlpha: 0.95, glow: 0.9, irid: 0.22, alpha: 0.9,
+  }));
+  crown.position.copy(HERO_TIP);
+  group.add(crown);
+  const crownHalo = new THREE.Mesh(new THREE.SphereGeometry(52, 20, 14),
+    glow({ color: 0xffd9a0, intensity: 0.30, core: 0.0, power: 2.6, flicker: 0.06 }));
+  crownHalo.position.copy(HERO_TIP);
+  group.add(crownHalo);
 
   /* ── le pore : entonnoir + bourrelet ── */
   const profile = [];
@@ -150,14 +188,18 @@ export default function peau() {
   flakeGeos.forEach(g2 => g2.dispose());
   group.add(flakes);
 
+  /* une dalle bien nette qu'on peut désigner du doigt */
+  const CORNE = new THREE.Vector3(150, 12, -140);
+
   const spots = {
-    poil: hairSegs.length ? hairSegs[Math.min(11, hairSegs.length - 1)].b.clone() : new THREE.Vector3(0, 120, 0),
-    pore: PORE.clone().add(new THREE.Vector3(-96, 24, 0)),
-    corne: new THREE.Vector3(-190, 34, 120),
+    poil: { p: HERO_TIP.clone(), r: 42, view: HERO_TIP.clone().add(new THREE.Vector3(112, 34, 118)) },
+    pore: { p: PORE.clone().add(new THREE.Vector3(0, -60, 0)), r: 105,
+            view: PORE.clone().add(new THREE.Vector3(-172, 118, -158)) },
+    corne: { p: CORNE.clone(), r: 34, view: CORNE.clone().add(new THREE.Vector3(46, 74, 76)) },
   };
 
   return {
-    group, path, spots, spotFar: 1500,
+    group, path, spots, spotFar: 1900,
     speed: 0.0145, freeSpeed: 160, lookAhead: 0.02, fov: 72, shake: 0.35,
     bounds: { type: 'sphere', center: new THREE.Vector3(0, 60, 60), radius: 1250, floor: -400 },
     // plein soleil rasant, ciel bleu en rebond

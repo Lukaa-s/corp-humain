@@ -103,8 +103,8 @@ export default function foie(q = 1) {
   lobule.add(triads);
 
   const bile = new THREE.Mesh(mergeGeometries(bileGeos), pulseStrand({
-    base: 0x4a4410, spark: 0xd8f060, speed: -0.18, width: 0.12, density: 0.8,
-    rim: 0.8, intensity: 1.2, falloff: 0.00001,
+    base: 0x4a4818, spark: 0xc8cc70, speed: -0.18, width: 0.12, density: 0.8,
+    rim: 0.6, intensity: 0.7, falloff: 0.00001,
   }));
   bileGeos.forEach(g => g.dispose());
   lobule.add(bile);
@@ -128,7 +128,7 @@ export default function foie(q = 1) {
   group.add(lobule);
 
   /* ── le motif se répète : six voisins dans la brume ── */
-  const D = (R_OUT + 32) * 1.74;
+  const D = (R_OUT + 32) * 2.05;
   // Trois voisins suffisent à faire comprendre que le motif se répète ; six
   // triplaient la charge géométrique pour des lobules noyés dans la brume.
   const NEIGH = q >= 0.8 ? 3 : 2;
@@ -146,9 +146,11 @@ export default function foie(q = 1) {
   }, 77);
   group.add(dust);
 
+  // On arrive de l'extérieur, en surplomb : la première image doit montrer
+  // l'hexagone entier et ses travées qui rayonnent, pas un mur de cellules.
   const path = new THREE.CatmullRomCurve3([
-    new THREE.Vector3(560, H * 0.72, 470),
-    new THREE.Vector3(400, H * 0.46, 330),
+    new THREE.Vector3(430, H * 0.86, 400),
+    new THREE.Vector3(330, H * 0.62, 300),
     new THREE.Vector3(300, H * 0.20, 250),
     new THREE.Vector3(268, -H * 0.06, 208),
     new THREE.Vector3(190, -H * 0.24, 150),
@@ -161,12 +163,18 @@ export default function foie(q = 1) {
   ]);
   path.curveType = 'centripetal';
 
+  const hepP = new THREE.Vector3(Math.cos(0.4) * 175, -40, Math.sin(0.4) * 175);
+  const sinP = new THREE.Vector3(Math.cos(1.55) * 210, 20, Math.sin(1.55) * 210);
+  const bileP = new THREE.Vector3(Math.cos(Math.PI / 6 - 1.9) * 40 + Math.cos(Math.PI / 6) * (R_OUT + 32),
+    -60, Math.sin(Math.PI / 6 - 1.9) * 40 + Math.sin(Math.PI / 6) * (R_OUT + 32));
   const spots = {
-    lobule: new THREE.Vector3(0, H * 0.42, 0),
-    hepatocyte: new THREE.Vector3(Math.cos(0.4) * 175, -40, Math.sin(0.4) * 175),
-    sinusoide: new THREE.Vector3(Math.cos(1.55) * 210, 20, Math.sin(1.55) * 210),
-    bile: new THREE.Vector3(Math.cos(Math.PI / 6 - 1.9) * 40 + Math.cos(Math.PI / 6) * (R_OUT + 32),
-      -60, Math.sin(Math.PI / 6 - 1.9) * 40 + Math.sin(Math.PI / 6) * (R_OUT + 32)),
+    lobule: { p: new THREE.Vector3(0, 0, 0), r: R_OUT + 40,
+              view: new THREE.Vector3(560, H * 0.36, 500) },
+    hepatocyte: { p: hepP.clone(), r: 26,
+                  view: hepP.clone().multiplyScalar(0.72).add(new THREE.Vector3(0, 26, 0)) },
+    sinusoide: { p: sinP.clone(), r: 18,
+                 view: sinP.clone().multiplyScalar(0.78).add(new THREE.Vector3(0, 34, 0)) },
+    bile: { p: bileP.clone(), r: 22, view: bileP.clone().multiplyScalar(0.82).add(new THREE.Vector3(0, 40, 0)) },
   };
 
   return {
